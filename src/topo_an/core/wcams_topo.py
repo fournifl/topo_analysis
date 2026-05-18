@@ -3,6 +3,7 @@ import numpy as np
 from bokeh.models import WMTSTileSource, LinearColorMapper, Slider, CustomJS
 from bokeh.plotting import figure, show, save, output_file
 from bokeh.layouts import column
+import colorcet as cc
 from topo_an.core.geo_utils import XY_1_to_XY_2
 
 def read_wcams_topo(dir_wcams_topo):
@@ -12,6 +13,7 @@ def read_wcams_topo(dir_wcams_topo):
 
     # output list of topographies
     topos = []
+    dates = []
 
     for i, f in enumerate(ls):
         with rasterio.open(f) as src:
@@ -21,10 +23,11 @@ def read_wcams_topo(dir_wcams_topo):
             topos.append(topo)
             if i ==0:
                 bounds = src.bounds
-    return topos, bounds
+            dates.append(f.stem.split('_')[-1])
+    return topos, dates, bounds
 
 
-def plot_wcams_topos(topos, bounds, epsg, tile_choice = 'Esri'):
+def plot_wcams_topos(topos, dates, bounds, epsg, tile_choice = 'Esri'):
 
     x, y = XY_1_to_XY_2(np.array([bounds.left, bounds.right]),
                               np.array([bounds.bottom, bounds.top]),
@@ -35,17 +38,16 @@ def plot_wcams_topos(topos, bounds, epsg, tile_choice = 'Esri'):
     y_min = np.min(y)
     y_max = np.max(y)
 
-
-
     # Convert all topo masked arrays to NaN arrays for Bokeh
     z = [np.flipud(np.where(topo.mask, np.nan, topo.data)) for topo in topos]
 
     # Setup color mapper
-    color_mapper = LinearColorMapper(palette="Viridis256", low=-4, high=5)
+    color_mapper = LinearColorMapper(palette=cc.rainbow, low=-3, high=4)
     color_mapper.nan_color = (0, 0, 0, 0)
 
     # Create figure
-    p = figure(title="Dataset 0", width=600, height=500, x_axis_type="mercator", y_axis_type="mercator")
+    p = figure(title="Intertidal topography", width=1536, height=864, x_axis_type="mercator", y_axis_type="mercator",
+               match_aspect=True)
 
     # ---- Add OSM tiles ----
     if tile_choice == 'carto_light':
@@ -57,18 +59,24 @@ def plot_wcams_topos(topos, bounds, epsg, tile_choice = 'Esri'):
         tile = "Esri World Imagery"
     p.add_tile(tile)
 
+    # Hide grid lines
+    p.grid.visible = False
+
     # plot topo
-    # img = p.image(image=[z[0]], x=0, y=0, dw=10, dh=10, color_mapper=color_mapper)
     img = p.image(image=[z[0]], x=x_min, y=y_min, dw=(x_max - x_min), dh=(y_max - y_min), color_mapper=color_mapper)
 
     # Create slider with CustomJS callback
-    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title="Dataset Index")
+    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title="INTERTIDAL TOPOGRAPHY", format=" ", width=1200)
 
-    callback = CustomJS(args=dict(img=img, arrays=z, slider=slider, p=p), code="""
+    callback = CustomJS(args=dict(img=img,
+                                  arrays=z,
+                                  slider=slider,
+                                  p=p,
+                                  dates=dates), code="""
         const idx = slider.value;
         img.data_source.data['image'][0] = arrays[idx];
         img.data_source.change.emit();
-        p.title.text = `Dataset ${idx}`;
+        p.title.text = `${dates[idx]}`;
     """)
 
     slider.js_on_change('value', callback)
@@ -77,89 +85,4 @@ def plot_wcams_topos(topos, bounds, epsg, tile_choice = 'Esri'):
     layout = column(slider, p)
     save(layout)
 
-
-
-    # x, y = XY_1_to_XY_2(np.array([bounds.left, bounds.right]),
-    #                           np.array([bounds.bottom, bounds.top]),
-    #                           epsg,
-    #                           '3857')
-    # x_min = np.min(x)
-    # x_max = np.max(x)
-    # y_min = np.min(y)
-    # y_max = np.max(y)
-    #
-    # # Create color mapper with transparent NaN color
-    # color_mapper = LinearColorMapper(palette="Viridis256", low=-4, high=4)
-    # color_mapper.nan_color = (0, 0, 0, 0)  # Key line: makes NaN pixels 100% transparent
-    #
-    # # Convert all topo masked arrays to NaN arrays for Bokeh
-    # z = [np.where(topo.mask, np.nan, topo.data) for topo in topos]
-    #
-    # # Create figure
-    # p = figure(
-    #     x_axis_type="mercator",
-    #     y_axis_type="mercator",
-    #     width=800,
-    #     height=600
-    # )
-    #
-    # img = p.image(
-    #     image=[z],
-    #     x=x_min,
-    #     y=y_min,
-    #     dw=(x_max - x_min),
-    #     dh=(y_max - y_min),
-    #     color_mapper=color_mapper
-    # )
-    #
-    # # Create slider with CustomJS callback
-    # slider = Slider(start=0, end=len(topos) - 1, step=1, value=0, title="Topo Index")
-    #
-    # callback = CustomJS(args=dict(img=img, arrays=z, slider=slider, p=p), code="""
-    #     const idx = slider.value;
-    #     img.data_source.data['image'][0] = arrays[idx];
-    #     img.data_source.change.emit();
-    #     p.title.text = `Dataset ${idx}`;
-    # """)
-    #
-    # slider.js_on_change('value', callback)
-
-    # show(column(slider, p))
-
-
-    '''
-    for topo in topos:
-
-        # ---- Create figure in Web Mercator ----
-        p = figure(
-            x_axis_type="mercator",
-            y_axis_type="mercator",
-            width=800,
-            height=600
-        )
-
-        # ---- Add OSM tiles ----
-        if tile_choice == 'carto_light':
-            tile = WMTSTileSource(
-                url='https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{Z}/{X}/{Y}.png',
-                attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            )
-        elif tile_choice == "Esri":
-            tile = "Esri World Imagery"
-        p.add_tile(tile)
-
-        p.image(
-            image=[z],
-            x=x_min,
-            y=y_min,
-            dw=(x_max - x_min),
-            dh=(y_max - y_min),
-            color_mapper=color_mapper
-        )
-        p.xgrid.grid_line_color = None
-        p.ygrid.grid_line_color = None
-        output_file('test.html')
-        save(p)
-        print('')
-        '''
     return

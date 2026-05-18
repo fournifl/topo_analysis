@@ -6,10 +6,12 @@ def run(wavecams_topos,
 ):
 
     # read wavecams topographies
-    wc_topos, bounds = read_wcams_topo(wavecams_topos.dir)
+    wc_topos, wc_dates, bounds = read_wcams_topo(wavecams_topos.dir)
 
     # plot wavecams topographies
-    plot_wcams_topos(wc_topos, bounds, wavecams_topos.epsg)
+    plot_wcams_topos(wc_topos, wc_dates, bounds, wavecams_topos.epsg)
+
+    # compute stats on topographies
 
 
     return
