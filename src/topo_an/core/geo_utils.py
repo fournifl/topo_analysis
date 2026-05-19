@@ -30,14 +30,6 @@ def osm_tile(tile_choice):
 
     return tile
 
-def get_grid(bounds, topos):
-
-    # get topo grid
-    grid_x, grid_y = np.meshgrid(np.linspace(bounds.left, bounds.right, topos[0].shape[0]),
-                                 np.linspace(bounds.bottom, bounds.top, topos[0].shape[1]))
-
-    return grid_x, grid_y
-
 def get_common_mask(topos):
     """
     This method computes the area where topography is defined at any time.
