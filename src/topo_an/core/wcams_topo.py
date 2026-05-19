@@ -27,7 +27,18 @@ def read_wcams_topo(dir_wcams_topo):
                 bounds = src.bounds
             dates.append(f.stem.split('_')[-1])
 
-    return topos, dates, bounds
+            # grid coordinates
+            cols, rows = np.meshgrid(np.arange(src.width), np.arange(src.height))
+            grid_x, grid_y = rasterio.transform.xy(src.transform, rows, cols)
+
+            # grid_resolution
+            x_res = src.transform[0]
+            y_res = - src.transform[4]
+
+            # surface of a pixel
+            sp = x_res * y_res
+
+    return topos, dates, bounds, sp
 
 def convert_mpl_colormap_to_hex(cmap, n_colors):
 
@@ -54,16 +65,16 @@ def plot_wcams_topos(topos, dates, bounds, epsg, output_dir, tile_choice = 'Esri
     # Convert all topo masked arrays to NaN arrays for Bokeh
     z = [np.flipud(np.where(topo.mask, np.nan, topo.data)) for topo in topos]
 
-    # customized colormap. Edit this gradient at https://eltos.github.io/gradient/#0C0A69-2B4CD9-00E55A-FBFF03-9E6800-371B00
+    # customized colormap, # Edit this gradient at
+    # https://eltos.github.io/gradient/#0C0A69-2A5FD9-00E55A-FBFF03-F2B513-8B6316-371B00
     cmap = LinearSegmentedColormap.from_list('my gradient', (
-        # Edit this gradient at https://eltos.github.io/gradient/#0C0A69-2B4CD9-00E55A-FBFF03-F2B513-9E6800-371B00
-        (0.000, (0.047, 0.039, 0.412)),
-        (0.167, (0.169, 0.298, 0.851)),
-        (0.333, (0.000, 0.898, 0.353)),
-        (0.500, (0.984, 1.000, 0.012)),
-        (0.667, (0.949, 0.710, 0.075)),
-        (0.833, (0.620, 0.408, 0.000)),
-        (1.000, (0.216, 0.106, 0.000))))
+    (0.000, (0.047, 0.039, 0.412)),
+    (0.167, (0.165, 0.373, 0.851)),
+    (0.333, (0.000, 0.898, 0.353)),
+    (0.500, (0.984, 1.000, 0.012)),
+    (0.667, (0.949, 0.710, 0.075)),
+    (0.833, (0.545, 0.388, 0.086)),
+    (1.000, (0.216, 0.106, 0.000))))
     palette = convert_mpl_colormap_to_hex(cmap, 256)
 
     # Setup color mapper
