@@ -18,7 +18,7 @@ class WcamsTopos(BaseModel):
 
 
 class SporadicTopos(BaseModel):
-    date: list[datetime]
+    date: list[str]
     name: list[str]
     files: list[Path]
     epsg: int
