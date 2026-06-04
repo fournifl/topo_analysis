@@ -1,13 +1,12 @@
+import numpy as np
 from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar
 from bokeh.plotting import figure, save, output_file
 from bokeh.layouts import column
-import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
-from topo_an.core.geo_utils import osm_tile
 from matplotlib.colors import to_hex
-from rasterio.crs import CRS
-from rasterio.warp import calculate_default_transform, reproject, Resampling
-from rasterio.transform import array_bounds
+from rasterio.warp import reproject, Resampling
+
+from topo_an.core.geo_utils import osm_tile, calculate_tform_to_webmctor_and_reproj_extent
 
 
 def convert_mpl_colormap_to_hex(cmap, n_colors):
@@ -39,26 +38,18 @@ def get_color_mapper(low=-5, high=5):
 
     return color_mapper
 
-def plot_topos(src_topos, dates, output_dir, tile_choice ='Esri'):
+def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=-5, high=5, type=None):
 
     z = []
+
+    # calculate transform to web mercator (EPSG:3857) and reprojected extent
+    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(src_topos[0])
 
     for i, src in enumerate(src_topos):
 
         # read topo data
         src_data = src.read(1).astype(float)  # band 1
         nodata = src.nodata
-
-        # calculate transform to web mercator (EPSG:3857) and reprojected extent
-        if i == 0:
-            dst_crs = CRS.from_epsg(3857)
-            transform, width, height = calculate_default_transform(
-                src.crs, dst_crs,
-                src.width, src.height,
-                *src.bounds
-            )
-            # Compute the reprojected extent. array_bounds returns (bottom, left, top, right) in the dst CRS
-            left, bottom, right, top = array_bounds(height, width, transform)
 
         # Reproject topo to Web Mercator
         dst_data = np.empty((height, width), dtype=np.float32)
@@ -67,7 +58,7 @@ def plot_topos(src_topos, dates, output_dir, tile_choice ='Esri'):
             destination=dst_data,
             src_transform=src.transform,
             src_crs=src.crs,
-            dst_transform=transform,
+            dst_transform=tform,
             dst_crs=dst_crs,
             resampling=Resampling.bilinear,
             src_nodata=nodata,
@@ -95,13 +86,13 @@ def plot_topos(src_topos, dates, output_dir, tile_choice ='Esri'):
     p.grid.visible = False
 
     # color mapper
-    color_mapper = get_color_mapper(low=-3, high=4)
+    color_mapper = get_color_mapper(low=low, high=high)
 
     # plot topo
     img = p.image(image=[z[0]], x=left, y=bottom, dw=(right - left), dh=(top - bottom), color_mapper=color_mapper)
 
     # Create slider with CustomJS callback
-    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title="INTERTIDAL TOPOGRAPHY", format=" ", width=1200)
+    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=f"INTERTIDAL TOPOGRAPHY {type}", format=" ", width=1200)
 
     callback = CustomJS(args=dict(img=img,
                                   arrays=z,
@@ -122,7 +113,7 @@ def plot_topos(src_topos, dates, output_dir, tile_choice ='Esri'):
     p.add_layout(color_bar, "right")
 
     # Save plot to html
-    output_file(output_dir.joinpath('wcams_topos.html'))
+    output_file(output_dir.joinpath(f'{name_out}.html'))
     layout = column(slider, p)
     save(layout)
 
