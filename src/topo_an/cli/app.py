@@ -17,15 +17,17 @@ class WcamsTopos(BaseModel):
     epsg: int
 
 
-class PonctualTopos(BaseModel):
+class SporadicTopos(BaseModel):
     date: list[datetime]
     name: list[str]
-    dir: list[Path]
+    files: list[Path]
+    epsg: int
+    roi: Path
 
 
 class AppConfig(BaseModel):
     wavecams_topos: WcamsTopos
-    ponctual_topos: PonctualTopos
+    sporadic_topos: SporadicTopos
     output_dir: Path
 
 
