@@ -2,9 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from topo_an.core.geo_utils import get_common_mask, plot_common_mask
+from topo_an.core.topo import get_bounds, get_pixel_surface
 
 
-def d_volume(topos, dates, bounds, sp, topo_ref, epsg, output_dir):
+def d_volume_old(topos, dates, bounds, sp, topo_ref, epsg, output_dir):
 
     # output directory
     outdir = output_dir.joinpath('d_volume')
@@ -45,11 +46,73 @@ def d_volume(topos, dates, bounds, sp, topo_ref, epsg, output_dir):
             dv_with_ref_topo.append(mean_d * s)
             time_d.append(dates[i])
 
-    # plot stats of wavecams topographies
-    plot_d_volume(mean_h, time_h, dh_with_ref_topo, dv_with_ref_topo, time_d, outdir)
+    # plot stats of topographies
+    plot_d_volume(mean_h,
+                  time_h,
+                  dh_with_ref_topo,
+                  dv_with_ref_topo,
+                  time_d,
+                  outdir)
 
     return
 
+def d_volume(rio_topos, dates, rio_topo_ref, output_dir):
+
+    # output directory
+    outdir = output_dir.joinpath('d_volume')
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    # initialize variables
+    mean_h = []
+    time_h = []
+    time_d = []
+    dh_with_ref_topo = []
+    dv_with_ref_topo = []
+
+    # compute common mask
+    mask = get_common_mask(rio_topos)
+
+    # plot common mask
+    plot_common_mask(mask, rio_topos[0], outdir)
+
+    # get the surface of a pixel
+    ps = get_pixel_surface(rio_topos[0])
+
+    # compute surface of common mask, in m2
+    s = (~mask).sum() * ps
+
+    # read and compress topo_ref
+    topo_ref = rio_topo_ref.read(1).astype(float)
+    topo_ref = np.ma.array(topo_ref, mask=topo_ref==rio_topo_ref.nodata)
+    topo_ref.mask = mask
+    topo_ref = topo_ref.compressed()
+
+    # mean height follow up
+    for i, rio_topo in enumerate(rio_topos):
+        topo = rio_topo.read(1).astype(float)
+        topo = np.ma.array(topo, mask=topo == rio_topo.nodata)
+        topo.mask = mask
+        topo = topo.compressed()
+        mean_h.append(round(np.mean(topo), 2))
+        time_h.append(dates[i])
+
+        # mean volume follow up
+        mean_d = round(np.mean(topo - topo_ref), 2)
+        # compute volume difference only if topo is not the reference topo
+        if abs(mean_d) > 0:
+            dh_with_ref_topo.append(mean_d)
+            dv_with_ref_topo.append(mean_d * s)
+            time_d.append(dates[i])
+
+    # plot stats of topographies
+    plot_d_volume(mean_h,
+                  time_h,
+                  dh_with_ref_topo,
+                  dv_with_ref_topo,
+                  time_d,
+                  outdir)
+
+    return
 
 def plot_d_volume(mean_h, time_h, dh_with_ref_topo, dv_with_ref_topo, time_d, outdir):
     f, ax = plt.subplots(3, 1, figsize=(16, 10), sharex=True)
