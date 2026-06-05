@@ -18,7 +18,8 @@ def run(wavecams_topos,
         wc_rio_topos,
         wc_dates,
         wc_rio_topos[0],
-        output_dir)
+        output_dir,
+    'wavecams')
 
     # close wavecams topographies
     for ds in wc_rio_topos:
@@ -35,6 +36,12 @@ def run(wavecams_topos,
                name=sporadic_topos.name)
 
     # compute stats on sporadic topographies
+    stats.d_volume(
+        sp_rio_topos,
+        sporadic_topos.date,
+        sp_rio_topos[0],
+        output_dir,
+        'sporadic')
 
     # compute stats on sporadic topographies, on the same area than wcams' ones
 
