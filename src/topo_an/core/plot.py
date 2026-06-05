@@ -38,9 +38,16 @@ def get_color_mapper(low=-5, high=5):
 
     return color_mapper
 
-def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=-5, high=5, type=None):
+def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=-5, high=5, name=None):
 
     z = []
+
+    if isinstance(name, str):
+        names = [name for i in range(len(src_topos))]
+    else:
+        names = name
+
+    titles = [dates[i] + ' ' + names[i] for i in range(len(dates))]
 
     # calculate transform to web mercator (EPSG:3857) and reprojected extent
     dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(src_topos[0])
@@ -92,17 +99,17 @@ def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=
     img = p.image(image=[z[0]], x=left, y=bottom, dw=(right - left), dh=(top - bottom), color_mapper=color_mapper)
 
     # Create slider with CustomJS callback
-    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=f"INTERTIDAL TOPOGRAPHY {type}", format=" ", width=1200)
+    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=f"INTERTIDAL TOPOGRAPHY", format=" ", width=1200)
 
     callback = CustomJS(args=dict(img=img,
                                   arrays=z,
                                   slider=slider,
                                   p=p,
-                                  dates=dates), code="""
+                                  titles=titles), code="""
             const idx = slider.value;
             img.data_source.data['image'][0] = arrays[idx];
             img.data_source.change.emit();
-            p.title.text = `${dates[idx]}`;
+            p.title.text = `${titles[idx]}`;
         """)
 
     slider.js_on_change('value', callback)
