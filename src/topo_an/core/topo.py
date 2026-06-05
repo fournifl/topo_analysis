@@ -31,7 +31,7 @@ def read_wcams_topo(dir_wcams_topo, epsg):
 
     return rio_topos, dates
 
-def read_sporadic_topos(ls_spor_topos):
+def read_sporadic_topos(ls_spor_topos, epsg):
 
     # output list of rio topography objects
     rio_topos = []
@@ -39,6 +39,10 @@ def read_sporadic_topos(ls_spor_topos):
     for i, f in enumerate(ls_spor_topos):
         # create rio object
         src = rasterio.open(f, 'r+')
+
+        # set crs if necessary
+        if src.crs is None:
+            src.crs = CRS.from_epsg(epsg)
 
         # append rio object to list
         rio_topos.append(src)
