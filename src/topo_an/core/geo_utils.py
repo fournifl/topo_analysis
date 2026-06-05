@@ -1,6 +1,7 @@
 import numpy as np
 from bokeh.models import WMTSTileSource
 from bokeh.plotting import figure, save, output_file
+import rasterio
 from rasterio.crs import CRS
 from rasterio.transform import array_bounds
 from rasterio.warp import calculate_default_transform, reproject, Resampling
@@ -31,6 +32,13 @@ def calculate_tform_to_webmctor_and_reproj_extent(src):
     left, bottom, right, top = array_bounds(height, width, transform)
 
     return dst_crs, transform, width, height, left, bottom, right, top
+
+def same_grid(ls):
+    check_crs = all(ls[i].crs == ls[0].crs for i in range(len(ls)))
+    check_transform = all(ls[i].transform == ls[0].transform for i in range(len(ls)))
+    check_shape = all(ls[i].shape == ls[0].shape for i in range(len(ls)))
+    same_grid = all([check_crs, check_transform, check_shape])
+    return same_grid
 
 def get_common_mask(rio_topos):
     """
@@ -102,5 +110,68 @@ def plot_common_mask(mask, topo_ex, outdir, tile_choice = 'Esri'):
     save(p)
 
     return
+
+# align rasters functions:
+def get_area(src):
+    """Return the geographic area covered by a raster."""
+    bounds = src.bounds
+    return (bounds.right - bounds.left) * (bounds.top - bounds.bottom)
+
+def get_least_extended(raster_list):
+    """Return the raster with the smallest geographic extent."""
+    return min(raster_list, key=get_area)
+
+def reproject_to_grid(src, ref):
+    """
+    Reproject `src` onto the grid defined by `ref`.
+    Returns a numpy array with shape (bands, height, width).
+    """
+    out = np.empty(
+        (src.count, ref.height, ref.width),
+        dtype=src.dtypes[0]
+    )
+
+    reproject(
+        source=rasterio.band(src, list(range(1, src.count + 1))),
+        destination=out,
+        src_transform=src.transform,
+        src_crs=src.crs,
+        dst_transform=ref.transform,
+        dst_crs=ref.crs,
+        resampling=Resampling.bilinear,  # change as needed
+    )
+    return out
+
+def align_rasters(raster_list, rio_ref):
+    """
+    Reproject all rasters onto the grid of the least extended one.
+    Returns a list of numpy arrays, all on the same grid.
+    """
+    ref_alignment = get_least_extended(raster_list)
+    print(f"Reference grid: shape={ref_alignment.shape}, crs={ref_alignment.crs}, transform={ref_alignment.transform}")
+
+    rio_aligned = []
+
+    profile = ref_alignment.profile.copy()
+    for src in raster_list:
+        if src == ref_alignment:
+            rio_aligned.append(src)  # already on the right grid
+            if src == rio_ref:
+                rio_ref = src
+        else:
+            aligned = reproject_to_grid(src, ref_alignment)
+            profile.update(count=aligned.shape[0], dtype=aligned.dtype)
+            out_path = src.name.replace(".tif", "_aligned.tif")
+            with rasterio.open(out_path, "w", **profile) as dst:
+                dst.write(aligned)
+                src_aligned = rasterio.open(out_path, 'r+')
+            rio_aligned.append(src_aligned)
+            if src == rio_ref:
+                rio_ref = src_aligned
+    # Close all sources
+    # for src in raster_list:
+    #     if src != ref:
+    #         src.close()
+    return rio_aligned, rio_ref
 
 
