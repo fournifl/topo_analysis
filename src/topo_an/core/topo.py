@@ -52,7 +52,7 @@ def read_sporadic_topos(ls_spor_topos, epsg):
 def apply_roi_mask_to_sporadic_topos(sp_rio_topos, roi, output_dir):
 
     # output dir masked data
-    output_dir_masked = Path(output_dir / 'sporadic_tops_masked')
+    output_dir_masked = Path(output_dir / 'sporadic_topos_masked')
     output_dir_masked.mkdir(exist_ok=True, parents=True)
 
     # read roi from the GeoPackage
