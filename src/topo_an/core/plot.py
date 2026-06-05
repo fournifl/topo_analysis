@@ -42,6 +42,10 @@ def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=
 
     z = []
 
+    # output directory
+    outdir = output_dir.joinpath('plots')
+    outdir.mkdir(parents=True, exist_ok=True)
+
     if isinstance(name, str):
         names = [name for i in range(len(src_topos))]
     else:
@@ -120,7 +124,7 @@ def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=
     p.add_layout(color_bar, "right")
 
     # Save plot to html
-    output_file(output_dir.joinpath(f'{name_out}.html'))
+    output_file(outdir.joinpath(f'{name_out}.html'))
     layout = column(slider, p)
     save(layout)
 
