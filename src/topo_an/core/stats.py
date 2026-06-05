@@ -1,14 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from topo_an.core.geo_utils import get_common_mask, plot_common_mask
+from topo_an.core.geo_utils import get_common_mask, plot_common_mask, same_grid, align_rasters
 from topo_an.core.topo import get_bounds, get_pixel_surface
 
 
-def d_volume_old(topos, dates, bounds, sp, topo_ref, epsg, output_dir):
+def d_volume(rio_topos, dates, rio_topo_ref, output_dir, subdir):
 
     # output directory
-    outdir = output_dir.joinpath('d_volume')
+    outdir = output_dir.joinpath('d_volume') / subdir
     outdir.mkdir(parents=True, exist_ok=True)
 
     # initialize variables
@@ -18,56 +18,10 @@ def d_volume_old(topos, dates, bounds, sp, topo_ref, epsg, output_dir):
     dh_with_ref_topo = []
     dv_with_ref_topo = []
 
-    # compute common mask
-    mask = get_common_mask(topos)
-
-    # plot common mask
-    plot_common_mask(mask, bounds, epsg, outdir)
-
-    # compute surface of common mask, in m2
-    s = (~mask).sum() * sp
-
-    # compress topo_ref
-    topo_ref.mask = mask
-    topo_ref = topo_ref.compressed()
-
-    # mean height follow up
-    for i, topo in enumerate(topos):
-        topo.mask = mask
-        topo = topo.compressed()
-        mean_h.append(round(np.mean(topo), 2))
-        time_h.append(dates[i])
-
-        # mean volume follow up
-        mean_d = round(np.mean(topo - topo_ref), 2)
-        # compute volume difference only if topo is not the reference topo
-        if abs(mean_d) > 0:
-            dh_with_ref_topo.append(mean_d)
-            dv_with_ref_topo.append(mean_d * s)
-            time_d.append(dates[i])
-
-    # plot stats of topographies
-    plot_d_volume(mean_h,
-                  time_h,
-                  dh_with_ref_topo,
-                  dv_with_ref_topo,
-                  time_d,
-                  outdir)
-
-    return
-
-def d_volume(rio_topos, dates, rio_topo_ref, output_dir):
-
-    # output directory
-    outdir = output_dir.joinpath('d_volume')
-    outdir.mkdir(parents=True, exist_ok=True)
-
-    # initialize variables
-    mean_h = []
-    time_h = []
-    time_d = []
-    dh_with_ref_topo = []
-    dv_with_ref_topo = []
+    # reinterpolate on the same grid if necessary (
+    if not same_grid(rio_topos):
+        print('align rasters')
+        rio_topos, rio_topo_ref = align_rasters(rio_topos, rio_topo_ref)
 
     # compute common mask
     mask = get_common_mask(rio_topos)
@@ -145,9 +99,3 @@ def plot_d_volume(mean_h, time_h, dh_with_ref_topo, dv_with_ref_topo, time_d, ou
     jpg = outdir.joinpath("d_volume.jpg")
     f.savefig(jpg, bbox_inches='tight')
     print("\n --> %s \n" % jpg)
-
-
-
-
-
-
