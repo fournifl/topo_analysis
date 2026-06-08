@@ -4,9 +4,8 @@ from bokeh.plotting import figure, save, output_file
 from bokeh.layouts import column
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import to_hex
-from rasterio.warp import reproject, Resampling
 
-from topo_an.core.geo_utils import osm_tile, calculate_tform_to_webmctor_and_reproj_extent
+from topo_an.core.geo_utils import osm_tile, reproject_rasters_to_web_mercator
 
 
 def convert_mpl_colormap_to_hex(cmap, n_colors):
@@ -40,50 +39,20 @@ def get_color_mapper(low=-5, high=5):
 
 def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=-5, high=5, name=None):
 
-    z = []
+    # reproject topos to web mercator
+    z, height, left, bottom, right, top = reproject_rasters_to_web_mercator(src_topos)
 
     # output directory
     outdir = output_dir.joinpath('plots')
     outdir.mkdir(parents=True, exist_ok=True)
 
+    # set title for each topo
     if isinstance(name, str):
         names = [name for i in range(len(src_topos))]
     else:
         names = name
-
     titles = [dates[i] + ' ' + names[i] for i in range(len(dates))]
 
-    # calculate transform to web mercator (EPSG:3857) and reprojected extent
-    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(src_topos[0])
-
-    for i, src in enumerate(src_topos):
-
-        # read topo data
-        src_data = src.read(1).astype(float)  # band 1
-        nodata = src.nodata
-
-        # Reproject topo to Web Mercator
-        dst_data = np.empty((height, width), dtype=np.float32)
-        reproject(
-            source=src_data,
-            destination=dst_data,
-            src_transform=src.transform,
-            src_crs=src.crs,
-            dst_transform=tform,
-            dst_crs=dst_crs,
-            resampling=Resampling.bilinear,
-            src_nodata=nodata,
-            dst_nodata=np.nan,
-        )
-
-
-        # Mask nodata
-        if nodata is not None:
-            dst_data[dst_data == nodata] = np.nan
-
-        # Flip: rasterio stores top→bottom, Bokeh needs bottom→top
-        img = np.flipud(dst_data)
-        z.append(img)
 
     # Create figure
     p = figure(title=titles[0], width=1536, height=864, x_axis_type="mercator",
@@ -124,7 +93,7 @@ def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=
     title_text_font_size="12pt", title_text_font_style="bold")
     p.add_layout(color_bar, "right")
 
-    # Save plot to html
+    # Save plot
     output_file(outdir.joinpath(f'{name_out}.html'))
     layout = column(slider, p)
     save(layout)

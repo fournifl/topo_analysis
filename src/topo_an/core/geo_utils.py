@@ -111,6 +111,46 @@ def plot_common_mask(mask, topo_ex, outdir, tile_choice = 'Esri'):
 
     return
 
+def reproject_rasters_to_web_mercator(src_topos):
+
+    # initialize reprojected variables
+    z = []
+
+    # calculate transform to web mercator (EPSG:3857) and reprojected extent
+    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(
+        src_topos[0])
+
+    for i, src in enumerate(src_topos):
+
+        # read topo data
+        src_data = src.read(1).astype(float)  # band 1
+        nodata = src.nodata
+
+        # Reproject topo to Web Mercator
+        dst_data = np.empty((height, width), dtype=np.float32)
+        reproject(
+            source=src_data,
+            destination=dst_data,
+            src_transform=src.transform,
+            src_crs=src.crs,
+            dst_transform=tform,
+            dst_crs=dst_crs,
+            resampling=Resampling.bilinear,
+            src_nodata=nodata,
+            dst_nodata=np.nan,
+        )
+
+        # Mask nodata
+        if nodata is not None:
+            dst_data[dst_data == nodata] = np.nan
+
+        # Flip: rasterio stores top→bottom, Bokeh needs bottom→top
+        img = np.flipud(dst_data)
+        z.append(img)
+
+    return z, height, left, bottom, right, top
+
+
 # align rasters functions:
 def get_area(src):
     """Return the geographic area covered by a raster."""
