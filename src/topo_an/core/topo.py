@@ -5,7 +5,7 @@ from rasterio.io import MemoryFile
 import geopandas as gpd
 from pathlib import Path
 
-def read_wcams_topo(dir_wcams_topo, epsg):
+def open_wcams_topo(dir_wcams_topo, epsg):
 
     # list of wavecams ascii topo files
     ls = sorted(dir_wcams_topo.glob('*.asc'))
@@ -31,7 +31,7 @@ def read_wcams_topo(dir_wcams_topo, epsg):
 
     return rio_topos, dates
 
-def read_sporadic_topos(ls_spor_topos, epsg):
+def open_sporadic_topos(ls_spor_topos, epsg):
 
     # output list of rio topography objects
     rio_topos = []
