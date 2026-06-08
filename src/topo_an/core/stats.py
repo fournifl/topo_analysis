@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from topo_an.core.geo_utils import get_common_mask, plot_common_mask, same_grid, align_rasters
+from topo_an.core.geo_utils import (get_common_mask, plot_common_mask, same_grid, align_rasters,
+                                    reproject_rasters_to_web_mercator)
 from topo_an.core.topo import get_bounds, get_pixel_surface
+from topo_an.core.plot import plot_topos
 
 
 def d_volume(rio_topos, dates, rio_topo_ref, output_dir, subdir):
@@ -18,7 +20,7 @@ def d_volume(rio_topos, dates, rio_topo_ref, output_dir, subdir):
     dh_with_ref_topo = []
     dv_with_ref_topo = []
 
-    # reinterpolate on the same grid if necessary (
+    # reinterpolate on the same grid if necessary
     if not same_grid(rio_topos):
         print('align rasters')
         rio_topos, rio_topo_ref = align_rasters(rio_topos, rio_topo_ref)
@@ -58,13 +60,18 @@ def d_volume(rio_topos, dates, rio_topo_ref, output_dir, subdir):
             dv_with_ref_topo.append(mean_d * s)
             time_d.append(dates[i])
 
-    # plot stats of topographies
-    plot_d_volume(mean_h,
-                  time_h,
-                  dh_with_ref_topo,
-                  dv_with_ref_topo,
-                  time_d,
-                  outdir)
+    # plot volume differences of topographies
+    plot_d_volume(mean_h, time_h, dh_with_ref_topo, dv_with_ref_topo, time_d, outdir)
+
+
+    # bokeh plot of topography differences with ref
+
+    # reproject topos to web mercator (before bokeh plot)
+    z, left, bottom, right, top = reproject_rasters_to_web_mercator(rio_topos)
+    z_ref, _, _, _, _ = reproject_rasters_to_web_mercator([rio_topo_ref])
+    dz = [z[i] - z_ref[0] for i in range(len(z))]
+
+    plot_topos(dz, left, bottom, right, top, dates, outdir, name_out='dtopos', low=-1.5, high=1.5, name='', type='dtopo')
 
     return
 
