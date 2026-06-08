@@ -1,4 +1,5 @@
 import sys
+import traceback
 from pathlib import Path
 from typing import Annotated
 
@@ -62,6 +63,7 @@ def main(
 
     except Exception as e:  # noqa: BLE001
         typer.secho(f"An error occurred: {e}", fg=typer.colors.RED)
+        typer.echo(traceback.format_exc())
         sys.exit(1)
 
 
