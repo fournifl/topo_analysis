@@ -86,7 +86,7 @@ def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=
         z.append(img)
 
     # Create figure
-    p = figure(title="Intertidal topography", width=1536, height=864, x_axis_type="mercator",
+    p = figure(title=titles[0], width=1536, height=864, x_axis_type="mercator",
                y_axis_type="mercator",
                match_aspect=True)
 
@@ -103,7 +103,8 @@ def plot_topos(src_topos, dates, output_dir, name_out, tile_choice ='Esri', low=
     img = p.image(image=[z[0]], x=left, y=bottom, dw=(right - left), dh=(top - bottom), color_mapper=color_mapper)
 
     # Create slider with CustomJS callback
-    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=f"INTERTIDAL TOPOGRAPHY", format=" ", width=1200)
+    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=f"INTERTIDAL TOPOGRAPHY", format=" ", width=1200,
+                    show_value=False)
 
     callback = CustomJS(args=dict(img=img,
                                   arrays=z,
