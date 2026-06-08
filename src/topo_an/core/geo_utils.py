@@ -148,7 +148,7 @@ def reproject_rasters_to_web_mercator(src_topos):
         img = np.flipud(dst_data)
         z.append(img)
 
-    return z, height, left, bottom, right, top
+    return z, left, bottom, right, top
 
 
 # align rasters functions:
