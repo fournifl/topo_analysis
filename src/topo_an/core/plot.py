@@ -106,7 +106,7 @@ def plot_topos(z, left, bottom, right, top, dates, output_dir, name_out, low=-5,
 
     # Save plot
     output_file(outdir.joinpath(f'{name_out}.html'))
-    print(outdir.joinpath(f'{name_out}.html'))
+    print('\n --> ', outdir.joinpath(f'{name_out}.html'))
     layout = column(slider, p)
     save(layout)
 
@@ -134,7 +134,7 @@ def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir):
 
     # plot mean beach height
     # wavecams
-    ax[0].axvline(x=t_ref, color='aqua', label='ref')
+    ax[0].axvline(x=t_ref, color='aqua', label='ref', linewidth=3.5)
     if len(inds_wcams) > 0:
         ax[0].plot(t[inds_wcams], mean_h[inds_wcams], color='darkblue', linewidth=2, marker='d', markersize=4,
                    label='wavecams')
@@ -148,7 +148,7 @@ def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir):
     ax[0].legend(loc='upper right', fontsize=12)
 
     # plot mean beach height difference with ref
-    ax[1].axvline(x=t_ref, color='aqua', label='ref')
+    ax[1].axvline(x=t_ref, color='aqua', label='ref', linewidth=3.5)
     # wavecams
     if len(inds_wcams) > 0:
         ax[1].plot(t[inds_wcams], dh_with_ref[inds_wcams], color='darkblue', linewidth=2, marker='d', markersize=4,
@@ -167,7 +167,7 @@ def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir):
     ax[1].grid(True)
 
     # plot volume difference with ref
-    ax[2].axvline(x=t_ref, color='aqua', label='ref')
+    ax[2].axvline(x=t_ref, color='aqua', label='ref', linewidth=3.5)
     # wavecams
     if len(inds_wcams) > 0:
         ax[2].plot(t[inds_wcams], dv_with_ref[inds_wcams], color='red', linewidth=2, marker='d', markersize=4,
