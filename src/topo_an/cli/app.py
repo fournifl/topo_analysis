@@ -28,7 +28,7 @@ class SporadicTopos(BaseModel):
 class AppConfig(BaseModel):
     wavecams_topos: WcamsTopos
     sporadic_topos: SporadicTopos
-    output_dir: Path
+    outdir: Path
 
 
 def load_config(path: str) -> AppConfig:
@@ -54,8 +54,8 @@ def main(
     if not conf.wavecams_topos.dir.exists():
         raise typer.Exit("Wavecams topo directory does not exist")
 
-    if not conf.output_dir.exists():
-        conf.output_dir.mkdir(parents=True, exist_ok=True)
+    if not conf.outdir.exists():
+        conf.outdir.mkdir(parents=True, exist_ok=True)
 
     try:
         # Run topo analysis

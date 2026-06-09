@@ -22,4 +22,4 @@ sporadic_topos:
   ]
   epsg: '2154'
   roi: '/home/florent/Projects/Etretat/lidarhd/roi_lidar.gpkg'
-output_dir: "/home/florent/Projects/Etretat/ALL_CAMS/topo_analysis_t_window_182_tstep_90/"
+outdir: "/home/florent/Projects/Etretat/ALL_CAMS/topo_analysis_t_window_182_tstep_90/"

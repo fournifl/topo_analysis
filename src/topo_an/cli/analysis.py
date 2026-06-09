@@ -4,16 +4,16 @@ def main(conf):
 
     topo_analysis.run_wcams(
         conf.wavecams_topos,
-        conf.output_dir
+        conf.outdir
     )
 
     topo_analysis.run_spor(
         conf.sporadic_topos,
-        conf.output_dir
+        conf.outdir
     )
 
     topo_analysis.run_all(
         conf.wavecams_topos,
         conf.sporadic_topos,
-        conf.output_dir
+        conf.outdir
     )
