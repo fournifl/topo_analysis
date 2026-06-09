@@ -22,7 +22,7 @@ def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
     # reinterpolate on the same grid if necessary
     if not same_grid(rio_topos):
         print('align rasters')
-        rio_topos, rio_topo_ref = align_rasters(rio_topos, rio_topo_ref)
+        rio_topos = align_rasters(rio_topos, rio_topo_ref)
 
     # compute common mask
     mask = get_common_mask(rio_topos)
