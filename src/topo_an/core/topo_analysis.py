@@ -80,10 +80,10 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
                name=name)
 
     # compute stats
-    stats.d_volume(rio_topos, dates, wc_rio_topos[0], outdir, 'wavecams_sporadic')
-    print('')
-    # close sporadic topographies
-    # for ds in rio_topos:
-    #     ds.close()
+    stats.d_volume(rio_topos, dates, name, wc_rio_topos[0], outdir, 'wavecams_sporadic')
+
+    # close wavecams, sporadic topographies
+    for ds in rio_topos:
+        ds.close()
 
     return
