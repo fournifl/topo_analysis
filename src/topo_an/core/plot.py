@@ -1,14 +1,28 @@
 import numpy as np
 from dateutil import parser
 import matplotlib.pyplot as plt
-from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar
+from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource
 from bokeh.plotting import figure, save, output_file
-from bokeh.layouts import column
+from bokeh.layouts import column, row
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import to_hex
+from rasterio.warp import reproject, Resampling
+from topo_an.core.geo_utils import calculate_tform_to_webmctor_and_reproj_extent, get_common_mask
 
-from topo_an.core.geo_utils import osm_tile, reproject_rasters_to_web_mercator
 
+def osm_tile(tile_choice):
+
+    # OSM tiles
+    if tile_choice == 'carto_light':
+        tile = WMTSTileSource(
+            url='https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{Z}/{X}/{Y}.png',
+            attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        )
+
+    elif tile_choice == "Esri":
+        tile = "Esri World Imagery"
+
+    return tile
 
 def convert_mpl_colormap_to_hex(cmap, n_colors):
 
@@ -188,8 +202,155 @@ def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir):
     print("\n --> %s \n" % jpg)
     return
 
+def plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir, rio_topos=None):
+
+    # convert date arrays from string to datetime with dateutil parser
+    t = [parse_date(t) for t in t]
+    t_ref = parse_date(t_ref)
+
+    # convert variables to np arrays
+    names = np.array(names)
+    mean_h = np.array(mean_h)
+    t = np.array(t)
+    dh_with_ref = np.array(dh_with_ref)
+    dv_with_ref = np.array(dv_with_ref)
+
+    # find indices corresponding to wavecams or sporadic data
+    inds_wcams = np.where(names == 'WAVECAMS')[0]
+    inds_spor = np.where(names != 'WAVECAMS')[0]
+
+    # Create three figures stacked vertically
+    p1 = figure(width=1200, height=250, x_axis_type='datetime', title='MEAN BEACH HEIGHT')
+    p2 = figure(width=1200, height=250, x_axis_type='datetime', title='MEAN HEIGHT DIFFERENCE WITH REF TOPO')
+    p3 = figure(width=1200, height=250, x_axis_type='datetime', title='VOLUME DIFFERENCE WITH REF TOPO')
+
+    # Reference line (vertical) - same for all plots
+    ref_line = Span(location=t_ref, dimension='height', line_color='aqua', line_width=3.5)
+    p1.add_layout(ref_line)
+    p2.add_layout(ref_line)
+    p3.add_layout(ref_line)
+
+    # Add ref_line to legend using dummy invisible lines
+    p1.line([t_ref, t_ref], [mean_h.min(), mean_h.max()], color='aqua', line_width=3.5, legend_label='ref', alpha=1)
+
+    # Wavecams data (darkblue diamond markers)
+    if len(inds_wcams) > 0:
+        p1.scatter(t[inds_wcams], mean_h[inds_wcams], size=6, color='darkblue', marker='diamond', legend_label='wavecams')
+        p1.line(t[inds_wcams], mean_h[inds_wcams], color='darkblue', line_width=2)
+        p2.scatter(t[inds_wcams], dh_with_ref[inds_wcams], size=6, color='darkblue', marker='diamond', legend_label='wavecams')
+        p2.line(t[inds_wcams], dh_with_ref[inds_wcams], color='darkblue', line_width=2)
+        p3.scatter(t[inds_wcams], dv_with_ref[inds_wcams], size=6, color='red', marker='diamond', legend_label='wavecams')
+        p3.line(t[inds_wcams], dv_with_ref[inds_wcams], color='red', line_width=2)
+
+    # Sporadic data (limegreen square markers)
+    if len(inds_spor) > 0:
+        p1.scatter(t[inds_spor], mean_h[inds_spor], size=6, color='limegreen', marker='square', legend_label='sporadic')
+        p2.scatter(t[inds_spor], dh_with_ref[inds_spor], size=6, color='limegreen', marker='square', legend_label='sporadic')
+        p3.scatter(t[inds_spor], dv_with_ref[inds_spor], size=6, color='limegreen', marker='square', legend_label='sporadic')
+
+    # Horizontal line at y=0 for plots 2 and 3
+    hline_p2 = Span(location=0, dimension='width', line_color='gray', line_width=2, line_dash='dashed')
+    hline_p3 = Span(location=0, dimension='width', line_color='gray', line_width=2, line_dash='dashed')
+    p2.add_layout(hline_p2)
+    p3.add_layout(hline_p3)
+
+    # Y-axis labels and colors
+    p1.yaxis.axis_label = 'mean_h (m)'
+    p1.yaxis.axis_label_text_color = 'black'
+    p2.yaxis.axis_label = 'H difference (m)'
+    p2.yaxis.axis_label_text_color = 'black'
+    p3.yaxis.axis_label = 'V difference (m3)'
+    p3.yaxis.axis_label_text_color = 'red'
+
+    # Grid and legend settings
+    p1.grid.visible = True
+    p2.grid.visible = True
+    p3.grid.visible = True
+    p1.legend.location = 'top_right'
+    p1.legend.label_text_font_size = '12pt'
+    p2.legend.location = 'top_right'
+    p2.legend.label_text_font_size = '12pt'
+    p3.legend.location = 'top_right'
+    p3.legend.label_text_font_size = '12pt'
+
+    # Link x-axes
+    p2.x_range = p1.x_range
+    p3.x_range = p1.x_range
+
+    # Build mosaic layout: time series on left, mask on right
+    left_column = column(p1, p2, p3)
+
+    if rio_topos is not None:
+        mask = get_common_mask(rio_topos)
+        p_mask = plot_common_mask(mask, rio_topos[0], outdir)
+        right_column = p_mask
+        layout = row(left_column, right_column)
+    else:
+        layout = left_column
+
+    # Save plot
+    html = outdir.joinpath('d_volume.html')
+    output_file(html)
+    print('\n --> %s \n' % html)
+
+    save(layout)
+
+    return
+
+def plot_common_mask(mask, topo_ex, outdir, tile_choice = 'Esri'):
+
+    # calculate transform to web mercator (EPSG:3857) and reprojected extent
+    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(topo_ex)
+
+    nodata = 1
+
+    # Reproject mask to Web Mercator
+    dst_data = np.empty((height, width), dtype=float)
+    reproject(
+        source=mask.astype(int),
+        destination=dst_data,
+        src_transform=topo_ex.transform,
+        src_crs=topo_ex.crs,
+        dst_transform=tform,
+        dst_crs=dst_crs,
+        resampling=Resampling.nearest,
+        src_nodata=nodata,
+        dst_nodata=np.nan,
+    )
+
+    mask = np.zeros((height, width), dtype=float)
+    mask[dst_data == 0] = 255
+
+    # Flip: rasterio stores top→bottom, Bokeh needs bottom→top
+    img = np.flipud(mask)
+
+    # Create figure in Web Mercator
+    p = figure(
+        x_axis_type="mercator",
+        y_axis_type="mercator",
+        width=600,
+        height=750,
+        title='AREA OF CALCULATION'
+    )
+
+    # Add OSM tile
+    p.add_tile(osm_tile(tile_choice))
+
+    # plot mask
+    p.image(
+        image=[img],
+        x=left,
+        y=bottom,
+        dw=(right - left),
+        dh=(top - bottom),
+        palette=["rgba(0,0,0,0)", "rgba(255,0,0,0.4)"]
+    )
+    p.xgrid.grid_line_color = None
+    p.ygrid.grid_line_color = None
+
+    return p
+
 def parse_date(date_string):
     date = parser.parse(date_string)
 
     return date
-
