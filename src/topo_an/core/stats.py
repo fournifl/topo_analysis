@@ -71,4 +71,4 @@ def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
         rio_topo.close()
     dz = [z[i] - z_ref[0] for i in range(len(z))]
 
-    plot_topos(dz, left, bottom, right, top, dates, outdir, name_out='dtopos', low=-1.5, high=1.5, name='', type='dtopo')
+    plot_topos(dz, left, bottom, right, top, dates, outdir, 'd_topo_plot',name_out='dtopos', low=-1.5, high=1.5, name='', type='dtopo')

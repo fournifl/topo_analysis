@@ -60,10 +60,10 @@ def get_color_mapper(low=-5, high=5, type='topo'):
 
     return color_mapper
 
-def plot_topos(z, left, bottom, right, top, dates, output_dir, name_out, low=-5, high=5, name=None, type='topo'):
+def plot_topos(z, left, bottom, right, top, dates, output_dir, subdir, name_out, low=-5, high=5, name=None, type='topo'):
 
     # output directory
-    outdir = output_dir.joinpath('plots')
+    outdir = output_dir.joinpath(subdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
     # set title
@@ -282,7 +282,7 @@ def plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdi
 
     if rio_topos is not None:
         mask = get_common_mask(rio_topos)
-        p_mask = plot_common_mask(mask, rio_topos[0], outdir)
+        p_mask = plot_common_mask(mask, rio_topos[0])
         right_column = p_mask
         layout = row(left_column, right_column)
     else:
@@ -293,11 +293,9 @@ def plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdi
     output_file(html)
     print('\n --> %s \n' % html)
 
-    save(layout)
-
     return
 
-def plot_common_mask(mask, topo_ex, outdir, tile_choice = 'Esri'):
+def plot_common_mask(mask, topo_ex, tile_choice = 'Esri'):
 
     # calculate transform to web mercator (EPSG:3857) and reprojected extent
     dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(topo_ex)
