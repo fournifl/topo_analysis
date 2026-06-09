@@ -48,9 +48,16 @@ def get_color_mapper(low=-5, high=5, type='topo'):
             (1.000, (0.216, 0.106, 0.000))))
     elif type == 'dtopo':
         # https://eltos.github.io/gradient/#0C0A69-EAEAEA-FF000C
+        # cmap = LinearSegmentedColormap.from_list('my gradient', (
+        #     (0.000, (0.047, 0.039, 0.412)),
+        #     (0.500, (0.918, 0.918, 0.918)),
+        #     (1.000, (1.000, 0.000, 0.047))))
         cmap = LinearSegmentedColormap.from_list('my gradient', (
+            # Edit this gradient at https://eltos.github.io/gradient/#0C0A69-0079FF-EAEAEA-ED8900-FF000C
             (0.000, (0.047, 0.039, 0.412)),
+            (0.250, (0.000, 0.475, 1.000)),
             (0.500, (0.918, 0.918, 0.918)),
+            (0.750, (0.929, 0.537, 0.000)),
             (1.000, (1.000, 0.000, 0.047))))
     palette = convert_mpl_colormap_to_hex(cmap, 256)
 
