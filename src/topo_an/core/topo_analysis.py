@@ -1,4 +1,5 @@
 import numpy as np
+import shutil
 
 from topo_an.core.topo import open_wcams_topo, open_sporadic_topos, apply_roi_mask_to_sporadic_topos
 from topo_an.core.plot import plot_topos
@@ -14,7 +15,8 @@ def run_wcams(wavecams_topos, outdir):
     z, left, bottom, right, top = reproject_rasters_to_web_mercator(wc_rio_topos)
 
     # plot wavecams topographies
-    plot_topos(z, left, bottom, right, top, wc_dates, outdir, name_out='wcams_topos', low=-3, high=4, name='WAVECAMS')
+    plot_topos(z, left, bottom, right, top, wc_dates, outdir, 'topos_plot',name_out='wcams_topos', low=-3,
+               high=4, name='WAVECAMS')
 
     # wavecams' topography names
     wc_names = ['WAVECAMS' for i in range(len(wc_rio_topos))]
@@ -32,14 +34,15 @@ def run_spor(sporadic_topos, outdir):
     sp_rio_topos = open_sporadic_topos(sporadic_topos.files, sporadic_topos.epsg)
 
     # apply roi mask to sporadic topographies
-    sp_rio_topos = apply_roi_mask_to_sporadic_topos(sp_rio_topos, sporadic_topos.roi, outdir)
+    outdir_masked = outdir / 'sporadic_topos_masked'
+    sp_rio_topos = apply_roi_mask_to_sporadic_topos(sp_rio_topos, sporadic_topos.roi, outdir_masked)
 
     # reproject topos to web mercator (before bokeh plot)
     z, left, bottom, right, top = reproject_rasters_to_web_mercator(sp_rio_topos)
 
     # plot sporadic topographies
-    plot_topos(z, left, bottom, right, top, sporadic_topos.date, outdir, name_out='sporadic_topos', low=-4, high=12,
-               name=sporadic_topos.name)
+    plot_topos(z, left, bottom, right, top, sporadic_topos.date, outdir, 'topos_plot', name_out='sporadic_topos',
+               low=-4, high=12, name=sporadic_topos.name)
 
     # compute stats on sporadic topographies
     stats.d_volume(sp_rio_topos, sporadic_topos.date, sporadic_topos.name, sp_rio_topos[0], outdir,'sporadic')
@@ -47,6 +50,9 @@ def run_spor(sporadic_topos, outdir):
     # close sporadic topographies
     for ds in sp_rio_topos:
         ds.close()
+
+    # rm temporary directory of masked data
+    shutil.rmtree(outdir_masked)
 
 def run_all(wavecams_topos, sporadic_topos, outdir):
     '''
@@ -60,7 +66,8 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
     sp_rio_topos = open_sporadic_topos(sporadic_topos.files, sporadic_topos.epsg)
 
     # apply roi mask to sporadic topographies
-    sp_rio_topos = apply_roi_mask_to_sporadic_topos(sp_rio_topos, sporadic_topos.roi, outdir)
+    outdir_masked = outdir / 'sporadic_topos_masked'
+    sp_rio_topos = apply_roi_mask_to_sporadic_topos(sp_rio_topos, sporadic_topos.roi, outdir_masked)
 
     # gather opened topographies
     dates = wc_dates + sporadic_topos.date
@@ -79,8 +86,8 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
     z, left, bottom, right, top = reproject_rasters_to_web_mercator(rio_topos)
 
     # plot wavecams and sporadic topographies
-    plot_topos(z, left, bottom, right, top, dates, outdir, name_out='wcams_sporadic_topos', low=-4, high=12,
-               name=name)
+    plot_topos(z, left, bottom, right, top, dates, outdir, 'topos_plot', name_out='wcams_sporadic_topos', low=-4,
+               high=12, name=name)
 
     # compute stats
     stats.d_volume(rio_topos, dates, name, wc_rio_topos[0], outdir, 'wavecams_sporadic')
@@ -88,5 +95,8 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
     # close wavecams, sporadic topographies
     for ds in rio_topos:
         ds.close()
+
+    # rm temporary directory of masked data
+    shutil.rmtree(outdir_masked)
 
     return
