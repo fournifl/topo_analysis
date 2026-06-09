@@ -4,19 +4,19 @@ wavecams_topos:
 sporadic_topos:
   date: [
     '2017-08-21 17:10',
-    '2020-09-11',
+#    '2020-09-11',
     '2023-09-05',
     '2025-04-28 05:22'
   ]
   name: [
           'litto3d',
-          'drone_photogrammetry',
+#          'drone_photogrammetry',
           'drone_photogrammetry',
           'lidarhd'
   ]
   files: [
            '/home/florent/Projects/Etretat/litto3d/NHDF_MAR_FRA_0497_0498_6960_6961_MNT_2016-2018_L93_RGF93_IGN69.tif',
-           '/home/florent/Projects/Etretat/drone_photog/2020_09_11/ROLNHDF_LAS-SOL_0498_6961_20200911-20200917_RGF93-L93_IGN69.tif',
+#           '/home/florent/Projects/Etretat/drone_photog/2020_09_11/ROLNHDF_LAS-SOL_0498_6961_20200911-20200917_RGF93-L93_IGN69.tif',
            '/home/florent/Projects/Etretat/drone_photog/2023_09_05/0497_0498_6960_6961-LAS-SOL-COLOR.tif',
            '/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif'
   ]
