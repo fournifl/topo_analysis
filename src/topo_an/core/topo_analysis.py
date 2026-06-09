@@ -16,8 +16,11 @@ def run_wcams(wavecams_topos, outdir):
     # plot wavecams topographies
     plot_topos(z, left, bottom, right, top, wc_dates, outdir, name_out='wcams_topos', low=-3, high=4, name='WAVECAMS')
 
+    # wavecams' topography names
+    wc_names = ['WAVECAMS' for i in range(len(wc_rio_topos))]
+
     # compute stats on wavecams topographies
-    stats.d_volume(wc_rio_topos, wc_dates, wc_rio_topos[0], outdir, 'wavecams')
+    stats.d_volume(wc_rio_topos, wc_dates, wc_names, wc_rio_topos[0], outdir, 'wavecams')
 
     # close wavecams topographies
     for ds in wc_rio_topos:
@@ -39,7 +42,7 @@ def run_spor(sporadic_topos, outdir):
                name=sporadic_topos.name)
 
     # compute stats on sporadic topographies
-    stats.d_volume(sp_rio_topos, sporadic_topos.date, sp_rio_topos[0], outdir,'sporadic')
+    stats.d_volume(sp_rio_topos, sporadic_topos.date, sporadic_topos.name, sp_rio_topos[0], outdir,'sporadic')
 
     # close sporadic topographies
     for ds in sp_rio_topos:
@@ -76,7 +79,7 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
     z, left, bottom, right, top = reproject_rasters_to_web_mercator(rio_topos)
 
     # plot wavecams and sporadic topographies
-    plot_topos(z, left, bottom, right, top, dates, outdir, name_out='wavecams_sporadic_topos', low=-4, high=12,
+    plot_topos(z, left, bottom, right, top, dates, outdir, name_out='wcams_sporadic_topos', low=-4, high=12,
                name=name)
 
     # compute stats
