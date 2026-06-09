@@ -184,34 +184,26 @@ def reproject_to_grid(src, ref):
 
 def align_rasters(raster_list, rio_ref):
     """
-    Reproject all rasters onto the grid of the least extended one.
-    Returns a list of numpy arrays, all on the same grid.
+    Reproject all rasters onto the grid of reference one.
+    Returns a list of objects rasterio.io.DatasetWriter.
     """
-    ref_alignment = get_least_extended(raster_list)
-    print(f"Reference grid: shape={ref_alignment.shape}, crs={ref_alignment.crs}, transform={ref_alignment.transform}")
 
     rio_aligned = []
 
-    profile = ref_alignment.profile.copy()
+    profile = rio_ref.profile.copy()
+
     for src in raster_list:
-        if src == ref_alignment:
+        if src == rio_ref:
             rio_aligned.append(src)  # already on the right grid
-            if src == rio_ref:
-                rio_ref = src
         else:
-            aligned = reproject_to_grid(src, ref_alignment)
+            aligned = reproject_to_grid(src, rio_ref)
             profile.update(count=aligned.shape[0], dtype=aligned.dtype)
             out_path = src.name.replace(".tif", "_aligned.tif")
             with rasterio.open(out_path, "w", **profile) as dst:
                 dst.write(aligned)
-                src_aligned = rasterio.open(out_path, 'r+')
+            src_aligned = rasterio.open(out_path, 'r+')
             rio_aligned.append(src_aligned)
-            if src == rio_ref:
-                rio_ref = src_aligned
-    # Close all sources
-    # for src in raster_list:
-    #     if src != ref:
-    #         src.close()
-    return rio_aligned, rio_ref
+
+    return rio_aligned
 
 
