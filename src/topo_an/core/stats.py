@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from topo_an.core.geo_utils import (get_common_mask, plot_common_mask, same_grid, align_rasters,
-                                    reproject_rasters_to_web_mercator)
-from topo_an.core.topo import get_bounds, get_pixel_surface
-from topo_an.core.plot import plot_topos, plot_d_volume
+from topo_an.core.geo_utils import get_common_mask, same_grid, align_rasters, reproject_rasters_to_web_mercator
+from topo_an.core.topo import get_pixel_surface
+from topo_an.core.plot import plot_topos, plot_d_volume, plot_d_volume_bokeh
 
 
 def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
@@ -26,9 +25,6 @@ def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
 
     # compute common mask
     mask = get_common_mask(rio_topos)
-
-    # plot common mask
-    plot_common_mask(mask, rio_topos[0], outdir)
 
     # get the surface of a pixel
     ps = get_pixel_surface(rio_topos[0])
@@ -58,8 +54,12 @@ def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
         dh_with_ref.append(mean_d)
         dv_with_ref.append(mean_d * s)
 
-    # plot volume differences of topographies
+    # plot volume differences of topographies (matplotlib)
     plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir)
+
+    # plot volume differences of topographies (bokeh mosaic with mask)
+    plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir, rio_topos=rio_topos)
+
 
     # bokeh plot of topography differences with ref
 
@@ -72,4 +72,3 @@ def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
     dz = [z[i] - z_ref[0] for i in range(len(z))]
 
     plot_topos(dz, left, bottom, right, top, dates, outdir, name_out='dtopos', low=-1.5, high=1.5, name='', type='dtopo')
-
