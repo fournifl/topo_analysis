@@ -1,4 +1,6 @@
 import numpy as np
+from dateutil import parser
+import matplotlib.pyplot as plt
 from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar
 from bokeh.plotting import figure, save, output_file
 from bokeh.layouts import column
@@ -104,8 +106,90 @@ def plot_topos(z, left, bottom, right, top, dates, output_dir, name_out, low=-5,
 
     # Save plot
     output_file(outdir.joinpath(f'{name_out}.html'))
+    print(outdir.joinpath(f'{name_out}.html'))
     layout = column(slider, p)
     save(layout)
 
     return
+
+def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir):
+
+    # convert date arrays from string to datetime with dateuitl parser
+    t = [parse_date(t) for t in t]
+    t_ref = parse_date(t_ref)
+
+    # convert variables to np arrays
+    names = np.array(names)
+    mean_h = np.array(mean_h)
+    t = np.array(t)
+    dh_with_ref = np.array(dh_with_ref)
+    dv_with_ref = np.array(dv_with_ref)
+
+    # create figure
+    fig, ax = plt.subplots(3, 1, figsize=(16, 10), sharex=True)
+
+    # find indices corresponding to wavecams or sporadic data
+    inds_wcams = np.where(names == 'WAVECAMS')[0]
+    inds_spor = np.where(names !='WAVECAMS')[0]
+
+    # plot mean beach height
+    # wavecams
+    ax[0].axvline(x=t_ref, color='aqua', label='ref')
+    if len(inds_wcams) > 0:
+        ax[0].plot(t[inds_wcams], mean_h[inds_wcams], color='darkblue', linewidth=2, marker='d', markersize=4,
+                   label='wavecams')
+    # sporadic
+    if len(inds_spor) > 0:
+        ax[0].plot(t[inds_spor], mean_h[inds_spor], color='limegreen', linewidth=0, marker='s', markersize=5,
+                   label='sporadic')
+    ax[0].set_title('MEAN BEACH HEIGHT')
+    ax[0].grid(True)
+    ax[0].set_ylabel('mean_h (m)', color='darkblue')
+    ax[0].legend(loc='upper right', fontsize=12)
+
+    # plot mean beach height difference with ref
+    ax[1].axvline(x=t_ref, color='aqua', label='ref')
+    # wavecams
+    if len(inds_wcams) > 0:
+        ax[1].plot(t[inds_wcams], dh_with_ref[inds_wcams], color='darkblue', linewidth=2, marker='d', markersize=4,
+                   label='wavecams')
+    # sporadic
+    if len(inds_spor) > 0:
+        ax[1].plot(t[inds_spor], dh_with_ref[inds_spor], color='limegreen', linewidth=0, marker='s', markersize=5,
+                   label='sporadic')
+
+    ax[1].legend(loc='upper right', fontsize=12)
+    ax[1].set_title('MEAN HEIGHT DIFFERENCE WITH REF TOPO')
+    ax[1].set_ylabel('H difference (m)', color='darkblue')
+    ax[1].axhline(y=0, linewidth=2, color='gray', dashes=(4, 4))
+    ax[1].set_xlim([min(t), max(t)])
+    ax[1].tick_params(axis='y', labelcolor='darkblue')
+    ax[1].grid(True)
+
+    # plot volume difference with ref
+    ax[2].axvline(x=t_ref, color='aqua', label='ref')
+    # wavecams
+    if len(inds_wcams) > 0:
+        ax[2].plot(t[inds_wcams], dv_with_ref[inds_wcams], color='red', linewidth=2, marker='d', markersize=4,
+                   label='wavecams')
+    # sporadic
+    if len(inds_spor) > 0:
+        ax[2].plot(t[inds_spor], dv_with_ref[inds_spor], color='limegreen', linewidth=0, marker='s', markersize=5,
+                   label='sporadic')
+    ax[2].set_title('VOLUME DIFFERENCE WITH REF TOPO')
+    ax[2].set_ylabel('V difference (m3)', color='red')
+    ax[2].axhline(y=0, linewidth=2, color='gray', dashes=(4, 4))
+    ax[2].tick_params(axis='y', labelcolor='red')
+    ax[2].grid(True)
+    ax[2].legend(loc='upper right', fontsize=12)
+    fig.autofmt_xdate()
+    jpg = outdir.joinpath("d_volume.jpg")
+    fig.savefig(jpg, bbox_inches='tight')
+    print("\n --> %s \n" % jpg)
+    return
+
+def parse_date(date_string):
+    date = parser.parse(date_string)
+
+    return date
 
