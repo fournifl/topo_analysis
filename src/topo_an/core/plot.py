@@ -292,6 +292,7 @@ def plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdi
     html = outdir.joinpath('d_volume.html')
     output_file(html)
     print('\n --> %s \n' % html)
+    save(layout)
 
     return
 
