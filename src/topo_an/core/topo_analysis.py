@@ -7,6 +7,9 @@ from topo_an.core import stats
 from topo_an.core.geo_utils import reproject_rasters_to_web_mercator
 
 def run_wcams(wavecams_topos, outdir):
+    '''
+    Analysis of wavecams topographies
+    '''
 
     # open wavecams topographies
     wc_rio_topos, wc_dates = open_wcams_topo(wavecams_topos.dir, wavecams_topos.epsg)
@@ -31,6 +34,9 @@ def run_wcams(wavecams_topos, outdir):
         ds.close()
 
 def run_spor(sporadic_topos, outdir):
+    '''
+    Analysis of sporadic topographies
+    '''
 
     # open sporadic topographies
     sp_rio_topos = open_sporadic_topos(sporadic_topos.files, sporadic_topos.epsg)
@@ -60,7 +66,7 @@ def run_spor(sporadic_topos, outdir):
 
 def run_all(wavecams_topos, sporadic_topos, outdir):
     '''
-    compute stats on both wavecams and sporadic topographies (on the same area than wcams' one)
+    Analysis of both wavecams and sporadic topographies
     '''
 
     # open wavecams topographies
