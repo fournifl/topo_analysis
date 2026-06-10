@@ -3,14 +3,10 @@ import numpy as np
 
 from topo_an.core.geo_utils import get_common_mask, same_grid, align_rasters, reproject_rasters_to_web_mercator
 from topo_an.core.topo import get_pixel_surface
-from topo_an.core.plot import plot_topos, plot_d_volume, plot_d_volume_bokeh
+from topo_an.core.plot import plot_topos, plot_d_volume
 
 
-def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
-
-    # output directory
-    outdir = output_dir.joinpath('d_volume') / subdir
-    outdir.mkdir(parents=True, exist_ok=True)
+def d_volume(rio_topos, dates, names, rio_topo_ref):
 
     # initialize variables
     mean_h = []
@@ -54,21 +50,16 @@ def d_volume(rio_topos, dates, names, rio_topo_ref, output_dir, subdir):
         dh_with_ref.append(mean_d)
         dv_with_ref.append(mean_d * s)
 
-    # plot volume differences of topographies (matplotlib)
-    plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir)
-
     # plot volume differences of topographies (bokeh mosaic with mask)
-    plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir, rio_topos=rio_topos)
-
+    layout_dv = plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=rio_topos)
 
     # bokeh plot of topography differences with ref
-
-    # reproject topos to web mercator (before bokeh plot)
     z, left, bottom, right, top = reproject_rasters_to_web_mercator(rio_topos)
     z_ref, _, _, _, _ = reproject_rasters_to_web_mercator([rio_topo_ref])
     rio_topo_ref.close()
     for rio_topo in rio_topos:
         rio_topo.close()
     dz = [z[i] - z_ref[0] for i in range(len(z))]
+    layout_dh = plot_topos(dz, left, bottom, right, top, dates, low=-1.5, high=1.5, name='', type='dtopo')
 
-    plot_topos(dz, left, bottom, right, top, dates, outdir, 'd_topo_plot',name_out='dtopos', low=-1.5, high=1.5, name='', type='dtopo')
+    return layout_dh, layout_dv

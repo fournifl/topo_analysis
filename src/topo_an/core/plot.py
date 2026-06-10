@@ -1,7 +1,7 @@
 import numpy as np
 from dateutil import parser
 import matplotlib.pyplot as plt
-from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource
+from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource, RadioButtonGroup
 from bokeh.plotting import figure, save, output_file
 from bokeh.layouts import column, row
 from matplotlib.colors import LinearSegmentedColormap
@@ -33,6 +33,11 @@ def convert_mpl_colormap_to_hex(cmap, n_colors):
     palette = [to_hex(rgb) for rgb in colors_rgb]
 
     return palette
+
+def parse_date(date_string):
+    date = parser.parse(date_string)
+
+    return date
 
 def get_color_mapper(low=-5, high=5, type='topo'):
 
@@ -67,17 +72,15 @@ def get_color_mapper(low=-5, high=5, type='topo'):
 
     return color_mapper
 
-def plot_topos(z, left, bottom, right, top, dates, output_dir, subdir, name_out, low=-5, high=5, name=None, type='topo'):
-
-    # output directory
-    outdir = output_dir.joinpath(subdir)
-    outdir.mkdir(parents=True, exist_ok=True)
+def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, type='topo'):
 
     # set title
     if type =='topo':
         title = 'INTERTIDAL TOPOGRAPHY'
+        title_cbar = "Elevation (mIGN69)"
     elif type =='dtopo':
         title = 'TOPOGRAPHY DIFFERENCE'
+        title_cbar = "Difference (m)"
 
     # set subtitle for each topo
     if isinstance(name, str):
@@ -121,95 +124,15 @@ def plot_topos(z, left, bottom, right, top, dates, output_dir, subdir, name_out,
     slider.js_on_change('value', callback)
 
     # Colour bar
-    color_bar = ColorBar(color_mapper=color_mapper, width=16, location=(0, 0), title="Elevation (mIGN69)",
+    color_bar = ColorBar(color_mapper=color_mapper, width=16, location=(0, 0), title=title_cbar,
     title_text_font_size="12pt", title_text_font_style="bold")
     p.add_layout(color_bar, "right")
 
-    # Save plot
-    output_file(outdir.joinpath(f'{name_out}.html'))
-    print('\n --> ', outdir.joinpath(f'{name_out}.html'))
     layout = column(slider, p)
-    save(layout)
 
-    return
+    return layout
 
-def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir):
-
-    # convert date arrays from string to datetime with dateuitl parser
-    t = [parse_date(t) for t in t]
-    t_ref = parse_date(t_ref)
-
-    # convert variables to np arrays
-    names = np.array(names)
-    mean_h = np.array(mean_h)
-    t = np.array(t)
-    dh_with_ref = np.array(dh_with_ref)
-    dv_with_ref = np.array(dv_with_ref)
-
-    # create figure
-    fig, ax = plt.subplots(3, 1, figsize=(16, 10), sharex=True)
-
-    # find indices corresponding to wavecams or sporadic data
-    inds_wcams = np.where(names == 'WAVECAMS')[0]
-    inds_spor = np.where(names !='WAVECAMS')[0]
-
-    # plot mean beach height
-    # wavecams
-    ax[0].axvline(x=t_ref, color='aqua', label='ref', linewidth=3.5)
-    if len(inds_wcams) > 0:
-        ax[0].plot(t[inds_wcams], mean_h[inds_wcams], color='darkblue', linewidth=2, marker='d', markersize=4,
-                   label='wavecams')
-    # sporadic
-    if len(inds_spor) > 0:
-        ax[0].plot(t[inds_spor], mean_h[inds_spor], color='limegreen', linewidth=0, marker='s', markersize=5,
-                   label='sporadic')
-    ax[0].set_title('MEAN BEACH HEIGHT')
-    ax[0].grid(True)
-    ax[0].set_ylabel('mean_h (m)', color='darkblue')
-    ax[0].legend(loc='upper right', fontsize=12)
-
-    # plot mean beach height difference with ref
-    ax[1].axvline(x=t_ref, color='aqua', label='ref', linewidth=3.5)
-    # wavecams
-    if len(inds_wcams) > 0:
-        ax[1].plot(t[inds_wcams], dh_with_ref[inds_wcams], color='darkblue', linewidth=2, marker='d', markersize=4,
-                   label='wavecams')
-    # sporadic
-    if len(inds_spor) > 0:
-        ax[1].plot(t[inds_spor], dh_with_ref[inds_spor], color='limegreen', linewidth=0, marker='s', markersize=5,
-                   label='sporadic')
-
-    ax[1].legend(loc='upper right', fontsize=12)
-    ax[1].set_title('MEAN HEIGHT DIFFERENCE WITH REF TOPO')
-    ax[1].set_ylabel('H difference (m)', color='darkblue')
-    ax[1].axhline(y=0, linewidth=2, color='gray', dashes=(4, 4))
-    ax[1].set_xlim([min(t), max(t)])
-    ax[1].tick_params(axis='y', labelcolor='darkblue')
-    ax[1].grid(True)
-
-    # plot volume difference with ref
-    ax[2].axvline(x=t_ref, color='aqua', label='ref', linewidth=3.5)
-    # wavecams
-    if len(inds_wcams) > 0:
-        ax[2].plot(t[inds_wcams], dv_with_ref[inds_wcams], color='red', linewidth=2, marker='d', markersize=4,
-                   label='wavecams')
-    # sporadic
-    if len(inds_spor) > 0:
-        ax[2].plot(t[inds_spor], dv_with_ref[inds_spor], color='limegreen', linewidth=0, marker='s', markersize=5,
-                   label='sporadic')
-    ax[2].set_title('VOLUME DIFFERENCE WITH REF TOPO')
-    ax[2].set_ylabel('V difference (m3)', color='red')
-    ax[2].axhline(y=0, linewidth=2, color='gray', dashes=(4, 4))
-    ax[2].tick_params(axis='y', labelcolor='red')
-    ax[2].grid(True)
-    ax[2].legend(loc='upper right', fontsize=12)
-    fig.autofmt_xdate()
-    jpg = outdir.joinpath("d_volume.jpg")
-    fig.savefig(jpg, bbox_inches='tight')
-    print("\n --> %s \n" % jpg)
-    return
-
-def plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdir, rio_topos=None):
+def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=None):
 
     # convert date arrays from string to datetime with dateutil parser
     t = [parse_date(t) for t in t]
@@ -295,13 +218,7 @@ def plot_d_volume_bokeh(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, outdi
     else:
         layout = left_column
 
-    # Save plot
-    html = outdir.joinpath('d_volume.html')
-    output_file(html)
-    print('\n --> %s \n' % html)
-    save(layout)
-
-    return
+    return layout
 
 def plot_common_mask(mask, topo_ex, tile_choice = 'Esri'):
 
@@ -356,7 +273,28 @@ def plot_common_mask(mask, topo_ex, tile_choice = 'Esri'):
 
     return p
 
-def parse_date(date_string):
-    date = parser.parse(date_string)
+def gather_bokeh_layouts(layout_h, layout_dh, layout_dv,  outdir, subdir, name_out):
 
-    return date
+    # output directory
+    outdir = outdir.joinpath(subdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    radio = RadioButtonGroup(
+        labels=["Beach Height", "Beach Height difference with ref", "Beach Volume difference with ref"],
+        active=0,
+        button_type="success"
+    )
+    # Simple loop: show only the plot matching the active index
+    callback = CustomJS(args=dict(plots=[layout_h, layout_dh, layout_dv]), code="""
+            for (let i = 0; i < plots.length; i++) {
+                plots[i].visible = (i === cb_obj.active);
+            }
+        """)
+    radio.js_on_change("active", callback)
+
+    layout = column(radio, layout_h, layout_dh, layout_dv, sizing_mode="stretch_both")
+    output_file(outdir.joinpath(f'{name_out}.html'))
+    print('\n --> %s \n' %(outdir.joinpath(f'{name_out}.html')))
+    save(layout)
+    return
+
