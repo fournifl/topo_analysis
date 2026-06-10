@@ -132,7 +132,7 @@ def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, ty
 
     return layout
 
-def plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=None):
+def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=None):
 
     # convert date arrays from string to datetime with dateutil parser
     t = [parse_date(t) for t in t]

@@ -3,7 +3,7 @@ import numpy as np
 
 from topo_an.core.geo_utils import get_common_mask, same_grid, align_rasters, reproject_rasters_to_web_mercator
 from topo_an.core.topo import get_pixel_surface
-from topo_an.core.plot import plot_topos, plot_d_volume
+from topo_an.core.plot import plot_topos, plot_dv
 
 
 def d_volume(rio_topos, dates, names, rio_topo_ref):
@@ -51,7 +51,7 @@ def d_volume(rio_topos, dates, names, rio_topo_ref):
         dv_with_ref.append(mean_d * s)
 
     # plot volume differences of topographies (bokeh mosaic with mask)
-    layout_dv = plot_d_volume(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=rio_topos)
+    layout_dv = plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=rio_topos)
 
     # bokeh plot of topography differences with ref
     z, left, bottom, right, top = reproject_rasters_to_web_mercator(rio_topos)
