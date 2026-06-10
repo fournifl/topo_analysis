@@ -1,9 +1,10 @@
 import numpy as np
 from dateutil import parser
-import matplotlib.pyplot as plt
-from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource, RadioButtonGroup, Label
+from bokeh.models import (LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource, RadioButtonGroup, Label,
+                          Select, ColumnDataSource)
 from bokeh.plotting import figure, save, output_file
 from bokeh.layouts import column, row
+from bokeh.io import curdoc
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import to_hex
 from rasterio.warp import reproject, Resampling
@@ -301,7 +302,7 @@ def plot_common_mask(mask, topo_ex, tile_choice = 'Esri'):
     mask[mask==255] = 0
     return p, np.flipud(mask.astype(int))
 
-def gather_bokeh_layouts(layout_h, layout_dh, layout_dv,  outdir, subdir, name_out):
+def gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, subdir, name_out):
 
 
     # output directory
@@ -331,3 +332,39 @@ def gather_bokeh_layouts(layout_h, layout_dh, layout_dv,  outdir, subdir, name_o
     save(layout)
     return
 
+def plot_validation(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top):
+
+    source = ColumnDataSource({"image": [wc_topo]})
+    all_data = ColumnDataSource({"r1": [wc_topo], "r2": [sp_topo], "r3": [wc_topo - sp_topo]})
+
+    p = figure(x_range=(left, left + (right - left)), y_range=(bottom, bottom + (top - bottom)),
+               x_axis_type="mercator", y_axis_type="mercator", width=700, height=500)
+    p.add_tile("Esri.WorldImagery")
+
+    # Hide grid lines
+    p.grid.visible = False
+
+    # color mapper
+    color_mapper_h = get_color_mapper(low=-5, high=5, type='topo')
+
+    p.image(image="image", x=left, y=bottom, dw=(right - left), dh=(top - bottom),
+            source=source, color_mapper=color_mapper_h, alpha=0.7)
+
+    select = Select(title="Select raster", value="Raster 1",
+                    options=["Raster 1", "Raster 2", "Raster 3"])
+
+    callback = CustomJS(args=dict(source=source, all_data=all_data), code="""
+        const map = {
+            'Raster 1': all_data.data['r1'],
+            'Raster 2': all_data.data['r2'],
+            'Raster 3': all_data.data['r3'],
+        };
+        source.data['image'] = map[cb_obj.value];
+        source.change.emit();
+    """)
+    select.js_on_change("value", callback)
+
+    # show(column(select, p))
+    layout = column(select, p)
+    output_file('test_valid.html')
+    save(layout)

@@ -5,7 +5,20 @@ from rasterio.io import MemoryFile
 import geopandas as gpd
 from pathlib import Path
 
-def open_wcams_topo(dir_wcams_topo, epsg):
+def open_wcams_topo(f_wcams_topo, epsg):
+
+    # create rio object
+    src = rasterio.open(f_wcams_topo, 'r+')
+
+    # set crs
+    src.crs = CRS.from_epsg(epsg)
+
+    # append date to dates
+    date = f_wcams_topo.stem.split('_')[-1]
+
+    return src, date
+
+def open_wcams_topos(dir_wcams_topo, epsg):
 
     # list of wavecams ascii topo files
     ls = sorted(dir_wcams_topo.glob('*.asc'))

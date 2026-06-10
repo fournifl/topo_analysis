@@ -1,8 +1,8 @@
 import numpy as np
 import shutil
 
-from topo_an.core.topo import open_wcams_topo, open_sporadic_topos, apply_roi_mask_to_sporadic_topos
-from topo_an.core.plot import plot_topos, gather_bokeh_layouts
+from topo_an.core.topo import open_wcams_topos, open_sporadic_topos, apply_roi_mask_to_sporadic_topos
+from topo_an.core.plot import plot_topos, gather_analysis_layouts
 from topo_an.core import stats
 from topo_an.core.geo_utils import reproject_rasters_to_web_mercator
 
@@ -12,7 +12,7 @@ def run_wcams(wavecams_topos, outdir):
     '''
 
     # open wavecams topographies
-    wc_rio_topos, wc_dates = open_wcams_topo(wavecams_topos.dir, wavecams_topos.epsg)
+    wc_rio_topos, wc_dates = open_wcams_topos(wavecams_topos.dir, wavecams_topos.epsg)
 
     # reproject topos to web mercator (before bokeh plot)
     z, left, bottom, right, top = reproject_rasters_to_web_mercator(wc_rio_topos)
@@ -27,7 +27,7 @@ def run_wcams(wavecams_topos, outdir):
     layout_dh, layout_dv = stats.d_volume(wc_rio_topos, wc_dates, wc_names, wc_rio_topos[0])
 
     # gather bokeh layouts
-    gather_bokeh_layouts(layout_h, layout_dh, layout_dv, outdir, 'topo_plots', 'wavecams')
+    gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, 'topo_plots', 'wavecams')
 
     # close wavecams topographies
     for ds in wc_rio_topos:
@@ -55,7 +55,7 @@ def run_spor(sporadic_topos, outdir):
     layout_dh, layout_dv = stats.d_volume(sp_rio_topos, sporadic_topos.date, sporadic_topos.name, sp_rio_topos[0])
 
     # gather bokeh layouts
-    gather_bokeh_layouts(layout_h, layout_dh, layout_dv, outdir, 'topo_plots', 'sporadic')
+    gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, 'topo_plots', 'sporadic')
 
     # close sporadic topographies
     for ds in sp_rio_topos:
@@ -70,7 +70,7 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
     '''
 
     # open wavecams topographies
-    wc_rio_topos, wc_dates = open_wcams_topo(wavecams_topos.dir, wavecams_topos.epsg)
+    wc_rio_topos, wc_dates = open_wcams_topos(wavecams_topos.dir, wavecams_topos.epsg)
 
     # open sporadic topographies
     sp_rio_topos = open_sporadic_topos(sporadic_topos.files, sporadic_topos.epsg)
@@ -102,7 +102,7 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
     layout_dh, layout_dv  = stats.d_volume(rio_topos, dates, name, wc_rio_topos[0])
 
     # gather bokeh layouts
-    gather_bokeh_layouts(layout_h, layout_dh, layout_dv, outdir, 'topo_plots', 'wavecams_sporadic')
+    gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, 'topo_plots', 'wavecams_sporadic')
 
     # close wavecams, sporadic topographies
     for ds in rio_topos:

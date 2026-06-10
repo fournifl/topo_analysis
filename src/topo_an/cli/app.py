@@ -7,7 +7,7 @@ import typer
 import yaml
 from pydantic import BaseModel
 
-from topo_an.cli import analysis
+from topo_an.cli import analysis, validation
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -24,11 +24,20 @@ class SporadicTopos(BaseModel):
     epsg: int
     roi: Path
 
+class FilePair(BaseModel):
+    wavecams: Path
+    sporadic: Path
+    t_sporadic: str
+
+class Validation(BaseModel):
+    pairs: list[FilePair]
+    outdir: Path
 
 class AppConfig(BaseModel):
     wavecams_topos: WcamsTopos
     sporadic_topos: SporadicTopos
     outdir: Path
+    validation: Validation
 
 
 def load_config(path: str) -> AppConfig:
@@ -60,6 +69,9 @@ def main(
     try:
         # Run topo analysis
         analysis.main(conf)
+        # Run topo validation
+        validation.main(conf)
+
 
     except Exception as e:  # noqa: BLE001
         typer.secho(f"An error occurred: {e}", fg=typer.colors.RED)

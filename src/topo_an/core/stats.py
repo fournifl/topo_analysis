@@ -28,7 +28,7 @@ def d_volume(rio_topos, dates, names, rio_topo_ref):
     # compute surface of common mask, in m2
     s = (~mask).sum() * ps
 
-    # read and compress topo_ref
+    # read topo_ref
     topo_ref = rio_topo_ref.read(1).astype(float)
     topo_ref = np.ma.array(topo_ref, mask=topo_ref==rio_topo_ref.nodata)
     topo_ref.mask = mask
@@ -70,3 +70,36 @@ def d_volume(rio_topos, dates, names, rio_topo_ref):
         rio_topo.close()
 
     return layout_dh, layout_dv
+
+def validation_metrics(a, b):
+    diff = a - b
+    rmse = np.sqrt(np.mean(diff**2))
+    mae  = np.mean(np.abs(diff))
+    corr = np.corrcoef(a.ravel(), b.ravel())[0, 1]
+    return rmse, mae, corr
+
+def validation(wc_rio_topo, sp_rio_topo):
+
+    # reinterpolate on the same grid if necessary
+    if not same_grid([wc_rio_topo, sp_rio_topo]):
+        print('align rasters before validation')
+        sp_rio_topo = align_rasters([sp_rio_topo], wc_rio_topo)[0]
+
+    # read wavecams topography
+    wc_topo = wc_rio_topo.read(1).astype(float)
+    wc_topo = np.ma.array(wc_topo, mask=wc_topo == wc_rio_topo.nodata)
+
+    # read independent sporadic topography
+    sp_topo = sp_rio_topo.read(1).astype(float)
+    sp_topo = np.ma.array(sp_topo, mask=sp_topo == sp_rio_topo.nodata)
+
+    # compute difference
+    dh = wc_topo - sp_topo
+
+    # compute stats of difference
+
+
+
+
+
+    return
