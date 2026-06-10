@@ -1,7 +1,7 @@
 import numpy as np
 from dateutil import parser
 import matplotlib.pyplot as plt
-from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource, RadioButtonGroup
+from bokeh.models import LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource, RadioButtonGroup, Label
 from bokeh.plotting import figure, save, output_file
 from bokeh.layouts import column, row
 from matplotlib.colors import LinearSegmentedColormap
@@ -72,14 +72,15 @@ def get_color_mapper(low=-5, high=5, type='topo'):
 
     return color_mapper
 
-def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, type='topo'):
+def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, type='topo', width=1536, height=864,
+               label=False, labels=None):
 
     # set title
     if type =='topo':
-        title = 'INTERTIDAL TOPOGRAPHY'
+        title = 'BEACH HEIGHT'
         title_cbar = "Elevation (mIGN69)"
     elif type =='dtopo':
-        title = 'TOPOGRAPHY DIFFERENCE'
+        title = 'BEACH HEIGHT DIFFERENCE'
         title_cbar = "Difference (m)"
 
     # set subtitle for each topo
@@ -90,8 +91,7 @@ def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, ty
     subtitles = [dates[i] + ' ' + names[i] for i in range(len(dates))]
 
     # Create figure
-    p = figure(title=subtitles[0], width=1536, height=864, x_axis_type="mercator",
-               y_axis_type="mercator",
+    p = figure(title=subtitles[0], width=width, height=height, x_axis_type="mercator", y_axis_type="mercator",
                match_aspect=True)
 
     # Add OSM tiles
@@ -108,18 +108,48 @@ def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, ty
     img = p.image(image=[z[0]], x=left, y=bottom, dw=(right - left), dh=(top - bottom), color_mapper=color_mapper)
 
     # Create slider with CustomJS callback
-    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=title, format=" ", width=1200, show_value=False)
+    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=title, format=" ", width=int(0.8 * width),
+                    show_value=False)
 
+    # stat label
+    if label:
+        dh = labels['dh']
+        dv = labels['dv']
+        # Fixed Label for the mean height stat (top-left corner of the plot)
+        stat_label = Label(
+            x=10, y=250,  # pixels from bottom-left (screen coords)
+            x_units="screen", y_units="screen",
+            text=f"dh: {dh[0]} m     dv: {dh[0]} m3",
+            text_color="white", text_font_size="14px",
+            background_fill_color="#185fa5", background_fill_alpha=0.75,
+            border_line_color="white", padding=6,
+        )
+        p.add_layout(stat_label)
+        label_js = 'label.text = "dh: " + dh[idx].toFixed(2) + " m"  + "     dv: "+ dv[idx].toFixed(0) + " m3"';
+
+    else:
+        stat_label = None
+        label_js = ''
+        dh = None
+        dv = None
+
+    code_js = """
+            const idx = slider.value;
+            img.data_source.data['image'][0] = arrays[idx];
+            // Update the fixed Label text
+            // label.text = "Mean height diff: " + dh[idx].toFixed(2) + " m";
+            %s
+            img.data_source.change.emit();
+            p.title.text = `${titles[idx]}`;
+        """%(label_js)
     callback = CustomJS(args=dict(img=img,
                                   arrays=z,
                                   slider=slider,
+                                  label=stat_label,
                                   p=p,
-                                  titles=subtitles), code="""
-            const idx = slider.value;
-            img.data_source.data['image'][0] = arrays[idx];
-            img.data_source.change.emit();
-            p.title.text = `${titles[idx]}`;
-        """)
+                                  dh=dh,
+                                  dv=dv,
+                                  titles=subtitles), code=code_js)
 
     slider.js_on_change('value', callback)
 
@@ -132,7 +162,7 @@ def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, ty
 
     return layout
 
-def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=None):
+def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, layout_dh):
 
     # convert date arrays from string to datetime with dateutil parser
     t = [parse_date(t) for t in t]
@@ -150,9 +180,9 @@ def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=None):
     inds_spor = np.where(names != 'WAVECAMS')[0]
 
     # Create three figures stacked vertically
-    p1 = figure(width=1200, height=250, x_axis_type='datetime', title='MEAN BEACH HEIGHT')
-    p2 = figure(width=1200, height=250, x_axis_type='datetime', title='MEAN HEIGHT DIFFERENCE WITH REF TOPO')
-    p3 = figure(width=1200, height=250, x_axis_type='datetime', title='VOLUME DIFFERENCE WITH REF TOPO')
+    p1 = figure(width=900, height=210, x_axis_type='datetime', title='MEAN BEACH HEIGHT')
+    p2 = figure(width=900, height=210, x_axis_type='datetime', title='MEAN HEIGHT DIFFERENCE WITH REF TOPO')
+    p3 = figure(width=900, height=210, x_axis_type='datetime', title='VOLUME DIFFERENCE WITH REF TOPO')
 
     # Reference line (vertical) - same for all plots
     ref_line = Span(location=t_ref, dimension='height', line_color='aqua', line_width=3.5)
@@ -163,16 +193,16 @@ def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=None):
     # Add ref_line to legend using dummy invisible lines
     p1.line([t_ref, t_ref], [mean_h.min(), mean_h.max()], color='aqua', line_width=3.5, legend_label='ref', alpha=1)
 
-    # Wavecams data (darkblue diamond markers)
+    # Wavecams data
     if len(inds_wcams) > 0:
         p1.scatter(t[inds_wcams], mean_h[inds_wcams], size=6, color='darkblue', marker='diamond', legend_label='wavecams')
         p1.line(t[inds_wcams], mean_h[inds_wcams], color='darkblue', line_width=2)
         p2.scatter(t[inds_wcams], dh_with_ref[inds_wcams], size=6, color='darkblue', marker='diamond', legend_label='wavecams')
         p2.line(t[inds_wcams], dh_with_ref[inds_wcams], color='darkblue', line_width=2)
-        p3.scatter(t[inds_wcams], dv_with_ref[inds_wcams], size=6, color='red', marker='diamond', legend_label='wavecams')
-        p3.line(t[inds_wcams], dv_with_ref[inds_wcams], color='red', line_width=2)
+        p3.scatter(t[inds_wcams], dv_with_ref[inds_wcams], size=6, color='darkblue', marker='diamond', legend_label='wavecams')
+        p3.line(t[inds_wcams], dv_with_ref[inds_wcams], color='darkblue', line_width=2)
 
-    # Sporadic data (limegreen square markers)
+    # Sporadic data
     if len(inds_spor) > 0:
         p1.scatter(t[inds_spor], mean_h[inds_spor], size=6, color='limegreen', marker='square', legend_label='sporadic')
         p2.scatter(t[inds_spor], dh_with_ref[inds_spor], size=6, color='limegreen', marker='square', legend_label='sporadic')
@@ -190,33 +220,29 @@ def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, rio_topos=None):
     p2.yaxis.axis_label = 'H difference (m)'
     p2.yaxis.axis_label_text_color = 'black'
     p3.yaxis.axis_label = 'V difference (m3)'
-    p3.yaxis.axis_label_text_color = 'red'
+    p3.yaxis.axis_label_text_color = 'black'
 
     # Grid and legend settings
     p1.grid.visible = True
     p2.grid.visible = True
     p3.grid.visible = True
     p1.legend.location = 'top_right'
-    p1.legend.label_text_font_size = '12pt'
+    p1.legend.label_text_font_size = '8pt'
+    p1.legend.background_fill_alpha = 0.7
     p2.legend.location = 'top_right'
-    p2.legend.label_text_font_size = '12pt'
+    p2.legend.label_text_font_size = '8pt'
+    p2.legend.background_fill_alpha = 0.7
     p3.legend.location = 'top_right'
-    p3.legend.label_text_font_size = '12pt'
+    p3.legend.label_text_font_size = '8pt'
+    p3.legend.background_fill_alpha = 0.7
 
     # Link x-axes
     p2.x_range = p1.x_range
     p3.x_range = p1.x_range
 
-    # Build mosaic layout: time series on left, mask on right
+    # Build mosaic layout: time series on left, layout_dh on right
     left_column = column(p1, p2, p3)
-
-    if rio_topos is not None:
-        mask = get_common_mask(rio_topos)
-        p_mask = plot_common_mask(mask, rio_topos[0])
-        right_column = p_mask
-        layout = row(left_column, right_column)
-    else:
-        layout = left_column
+    layout = row(left_column, layout_dh)
 
     return layout
 
@@ -271,9 +297,12 @@ def plot_common_mask(mask, topo_ex, tile_choice = 'Esri'):
     p.xgrid.grid_line_color = None
     p.ygrid.grid_line_color = None
 
-    return p
+    mask[mask == 0] = 1
+    mask[mask==255] = 0
+    return p, np.flipud(mask.astype(int))
 
 def gather_bokeh_layouts(layout_h, layout_dh, layout_dv,  outdir, subdir, name_out):
+
 
     # output directory
     outdir = outdir.joinpath(subdir)
@@ -284,6 +313,10 @@ def gather_bokeh_layouts(layout_h, layout_dh, layout_dv,  outdir, subdir, name_o
         active=0,
         button_type="success"
     )
+    layout_h.visible = True  # default, no need to set explicitly
+    layout_dh.visible = False
+    layout_dv.visible = False
+
     # Simple loop: show only the plot matching the active index
     callback = CustomJS(args=dict(plots=[layout_h, layout_dh, layout_dv]), code="""
             for (let i = 0; i < plots.length; i++) {
