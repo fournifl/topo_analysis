@@ -3,8 +3,7 @@ from dateutil import parser
 from bokeh.models import (LinearColorMapper, Slider, CustomJS, ColorBar, Span, WMTSTileSource, RadioButtonGroup, Label,
                           Select, ColumnDataSource)
 from bokeh.plotting import figure, save, output_file
-from bokeh.layouts import column, row
-from bokeh.io import curdoc
+from bokeh.layouts import column, row, gridplot
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import to_hex
 from rasterio.warp import reproject, Resampling
@@ -314,7 +313,7 @@ def gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, subdir, name
         active=0,
         button_type="success"
     )
-    layout_h.visible = True  # default, no need to set explicitly
+    layout_h.visible = True
     layout_dh.visible = False
     layout_dv.visible = False
 
@@ -332,39 +331,257 @@ def gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, subdir, name
     save(layout)
     return
 
-def plot_validation(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top):
+def plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top, i):
 
+    # initialize source variable to wcams topo
     source = ColumnDataSource({"image": [wc_topo]})
-    all_data = ColumnDataSource({"r1": [wc_topo], "r2": [sp_topo], "r3": [wc_topo - sp_topo]})
 
-    p = figure(x_range=(left, left + (right - left)), y_range=(bottom, bottom + (top - bottom)),
-               x_axis_type="mercator", y_axis_type="mercator", width=700, height=500)
+    # create d_topo
+    d_topo = wc_topo - sp_topo
+
+    # gather all rasters in a ColumnDataSource object
+    all_data = ColumnDataSource({"r1": [wc_topo], "r2": [sp_topo], "r3": [d_topo]})
+
+    # create figure
+    dw = right - left
+    dh = top - bottom
+    p = figure(
+        x_range=(left, left + dw),
+        y_range=(bottom, bottom + dh),
+        x_axis_type="mercator", y_axis_type="mercator",
+        width=800, height=550,
+        title="Validation of Wavecams intertidal topography"
+    )
+
+    # add osm tile
     p.add_tile("Esri.WorldImagery")
 
     # Hide grid lines
     p.grid.visible = False
 
-    # color mapper
-    color_mapper_h = get_color_mapper(low=-5, high=5, type='topo')
+    # color mapper (one mapper per raster)
+    mapper_1 = get_color_mapper(low=-5, high=5, type='topo')
+    mapper_2 = get_color_mapper(low=-5, high=5, type='topo')
+    mapper_3 = get_color_mapper(low=-1, high=1, type='dtopo')
 
-    p.image(image="image", x=left, y=bottom, dw=(right - left), dh=(top - bottom),
-            source=source, color_mapper=color_mapper_h, alpha=0.7)
+    # plot raster
+    p.image(
+        image="image", x=left, y=bottom, dw=dw, dh=dh, source=source, color_mapper=mapper_1, alpha=0.7
+    )
 
-    select = Select(title="Select raster", value="Raster 1",
-                    options=["Raster 1", "Raster 2", "Raster 3"])
+    # color bar
+    color_bar = ColorBar(color_mapper=mapper_1, width=12, location=(0, 0))
+    p.add_layout(color_bar, "right")
 
-    callback = CustomJS(args=dict(source=source, all_data=all_data), code="""
-        const map = {
-            'Raster 1': all_data.data['r1'],
-            'Raster 2': all_data.data['r2'],
-            'Raster 3': all_data.data['r3'],
+    # labels
+    label_mae = Label(
+        x=10, y=250, x_units="screen", y_units="screen",
+        text=f"mae: {mae:.2f} m", text_color="white", text_font_size="14px",
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+    )
+    p.add_layout(label_mae)
+
+    label_rmse = Label(
+        x=10, y=215, x_units="screen", y_units="screen",
+        text=f"rmse: {rmse:.2f} m", text_color="white", text_font_size="14px",
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+    )
+    p.add_layout(label_rmse)
+
+    label_mean = Label(
+        x=10, y=180, x_units="screen", y_units="screen",
+        text=f"mean: {np.nanmean(d_topo):.2f} m", text_color="white", text_font_size="14px",
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+    )
+    p.add_layout(label_mean)
+
+    label_median = Label(
+        x=10, y=145, x_units="screen", y_units="screen",
+        text=f"median: {np.nanmedian(d_topo):.2f} m", text_color="white", text_font_size="14px",
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+    )
+    p.add_layout(label_median)
+
+    select = Select(
+        title="Select raster",
+        value="Wavecams",
+        options=["Wavecams", "Groundtruth", "Difference"]
+    )
+
+    configs = {
+        "Wavecams": {"palette": mapper_1.palette, "low": mapper_1.low, "high": mapper_1.high},
+        "Groundtruth": {"palette": mapper_2.palette, "low": mapper_2.low, "high": mapper_2.high},
+        "Difference": {"palette": mapper_3.palette, "low": mapper_3.low, "high": mapper_3.high},
+    }
+
+    # javascript callback
+    callback = CustomJS(
+        args=dict(
+            source=source,
+            all_data=all_data,
+            mapper=mapper_1,
+            configs=configs,
+            label_rmse=label_rmse,
+            label_mae=label_mae,
+            label_mean=label_mean,
+            label_median=label_median
+        ),
+        code="""
+        const raster_map = {
+            'Wavecams': {data: all_data.data['r1'], ...configs['Wavecams']},
+            'Groundtruth': {data: all_data.data['r2'], ...configs['Groundtruth']},
+            'Difference': {data: all_data.data['r3'], ...configs['Difference']},
         };
-        source.data['image'] = map[cb_obj.value];
+        const chosen = raster_map[cb_obj.value];
+
+        source.data['image'] = chosen.data;
         source.change.emit();
-    """)
+
+        mapper.palette = chosen.palette;
+        mapper.low     = chosen.low;
+        mapper.high    = chosen.high;
+        
+        label_rmse.visible = (cb_obj.value === 'Difference');
+        label_mae.visible = (cb_obj.value === 'Difference');
+        label_mean.visible = (cb_obj.value === 'Difference');
+        label_median.visible = (cb_obj.value === 'Difference');
+    """
+    )
     select.js_on_change("value", callback)
 
-    # show(column(select, p))
     layout = column(select, p)
-    output_file('test_valid.html')
+
+    return layout
+
+def plot_validation(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top, i):
+
+    layout_validation_raster = plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top, i)
+
+    mask = np.logical_or(np.isnan(wc_topo), np.isnan(sp_topo))
+    wc_topo = np.ma.array(wc_topo, mask=mask).compressed().flatten()
+    sp_topo = np.ma.array(sp_topo, mask=mask).compressed().flatten()
+
+    error = wc_topo - sp_topo
+
+    # ── 1. Scatter plot ──────────────────────────────────────
+    p1 = figure(
+        title="Wavecams vs Groundtruth",
+        x_axis_label="Groundtruth",
+        y_axis_label="Wavecams",
+        width=400, height=350,
+    )
+
+    p1.scatter(
+        x=sp_topo, y=wc_topo,
+        size=6, alpha=0.5,
+        color="#378ADD", line_color="white", line_width=0.5,
+    )
+    # 1:1 reference line
+    lim = [sp_topo.min(), sp_topo.max()]
+    p1.line(lim, lim, line_dash="dashed", line_color="black", line_width=1.5)
+
+    # ── 2. Box plot ──────────────────────────────────────────
+    # Compute box stats for both arrays
+    def box_stats(arr, label):
+        q1, median, q3 = np.percentile(arr, [25, 50, 75])
+        iqr = q3 - q1
+        upper = min(arr.max(), q3 + 1.5 * iqr)
+        lower = max(arr.min(), q1 - 1.5 * iqr)
+        return dict(label=label, q1=q1, q2=median, q3=q3,
+                    upper=upper, lower=lower)
+
+    stats = [box_stats(error, 'error')]
+
+    labels = [s["label"] for s in stats]
+    src = ColumnDataSource(dict(
+        x=labels,
+        q1=[s["q1"] for s in stats],
+        q2=[s["q2"] for s in stats],
+        q3=[s["q3"] for s in stats],
+        upper=[s["upper"] for s in stats],
+        lower=[s["lower"] for s in stats],
+        color=["#1D9E75"],
+    ))
+
+    p2 = figure(
+        title="Distribution of the error",
+        x_range=labels,
+        y_axis_label="Value (m)",
+        width=400, height=350,
+    )
+
+    # IQR box
+    p2.vbar(x="x", top="q3", bottom="q1", width=0.5,
+            source=src, alpha=0.6)
+    # Whiskers
+    p2.segment("x", "upper", "x", "q3", source=src, line_color="black")
+    p2.segment("x", "lower", "x", "q1", source=src, line_color="black")
+    # Whisker caps
+    p2.rect("x", "upper", 0.2, 0.0001, source=src, line_color="black")
+    p2.rect("x", "lower", 0.2, 0.0001, source=src, line_color="black")
+    # Median line
+    p2.rect("x", "q2", 0.5, 0.0001, source=src,
+            line_color="white", line_width=2)
+
+    # ── 3. Error histogram ───────────────────────────────────
+    hist, edges = np.histogram(error, bins=30)
+
+    p3 = figure(
+        title="Error histogram  (wavecams − groundtruth)",
+        x_axis_label="Error (m)",
+        y_axis_label="Count",
+        width=820, height=300,
+    )
+    p3.quad(
+        top=hist, bottom=0,
+        left=edges[:-1], right=edges[1:],
+        fill_color="#378ADD", line_color="white", alpha=0.8,
+    )
+    # Zero-error reference
+    p3.line([0, 0], [0, hist.max()],
+            line_dash="dashed", line_color="#444441", line_width=1.5)
+
+    layout_stats = row(p1, p2)
+    layout_stats = column(layout_stats, p3)
+    layout = row(layout_validation_raster, layout_stats)
+
+    return layout
+
+def gather_validation_layouts(layouts_val, outdir):
+
+    labels = ['Validation %s' % i for i in range(len(layouts_val))]
+
+    # --- Radio button group ---
+    radio = RadioButtonGroup(
+        labels=labels,
+        active=0,
+        button_type="success"
+    )
+
+    # Set initial visibility: only the first layout is visible
+    for i, layout in enumerate(layouts_val):
+        layout.visible = (i == 0)
+
+    # Simple loop: show only the plot matching the active index
+    callback = CustomJS(args=dict(plots=layouts_val), code="""
+            for (let i = 0; i < plots.length; i++) {
+                plots[i].visible = (i === cb_obj.active);
+            }
+        """)
+    radio.js_on_change("active", callback)
+
+    layout = column(radio, *layouts_val)
+
+    outdir = outdir.joinpath('validation')
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    output_file(outdir.joinpath('validation.html'))
+    print('\n --> %s \n' % (outdir.joinpath('validation.html')))
     save(layout)
+    return
+
+
+
+
+
+
