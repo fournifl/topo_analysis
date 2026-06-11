@@ -72,10 +72,15 @@ def d_volume(rio_topos, dates, names, rio_topo_ref):
     return layout_dh, layout_dv
 
 def validation_metrics(a, b):
-    diff = a - b
+
+    # apply the common mask otherwise correlation calculation is wrong
+    mask = np.logical_or(a.mask, b.mask)
+    a.mask = mask
+    b.mask = mask
+    diff = a -b
     rmse = np.sqrt(np.mean(diff**2))
     mae  = np.mean(np.abs(diff))
-    corr = np.corrcoef(a.ravel(), b.ravel())[0, 1]
+    corr = np.corrcoef(a.compressed().flatten(), b.compressed().flatten())[0, 1]
     return rmse, mae, corr
 
 def validation(wc_rio_topo, sp_rio_topo):
