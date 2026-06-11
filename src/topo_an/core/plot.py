@@ -479,7 +479,14 @@ def plot_validation(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top,
     )
     # 1:1 reference line
     lim = [sp_topo.min(), sp_topo.max()]
+    # labels
     p1.line(lim, lim, line_dash="dashed", line_color="black", line_width=1.5)
+    label_corr = Label(
+        x=10, y=245, x_units="screen", y_units="screen",
+        text=f"R2: {corr:.2f}", text_color="white", text_font_size="14px",
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=True
+    )
+    p1.add_layout(label_corr)
 
     # ── 2. Box plot ──────────────────────────────────────────
     # Compute box stats for both arrays
