@@ -331,16 +331,16 @@ def gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, subdir, name
     save(layout)
     return
 
-def plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top, i):
-
-    # initialize source variable to wcams topo
-    source = ColumnDataSource({"image": [wc_topo]})
+def plot_validation_raster(wc_topo, sp_topo, rmse, mae, left, bottom, right, top, i):
 
     # create d_topo
     d_topo = wc_topo - sp_topo
 
+    # initialize source variable to wcams topo
+    source = ColumnDataSource({"image": [d_topo]})
+
     # gather all rasters in a ColumnDataSource object
-    all_data = ColumnDataSource({"r1": [wc_topo], "r2": [sp_topo], "r3": [d_topo]})
+    all_data = ColumnDataSource({"r1": [d_topo], "r2": [wc_topo], "r3": [sp_topo]})
 
     # create figure
     dw = right - left
@@ -360,9 +360,9 @@ def plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, righ
     p.grid.visible = False
 
     # color mapper (one mapper per raster)
-    mapper_1 = get_color_mapper(low=-5, high=5, type='topo')
+    mapper_1 = get_color_mapper(low=-1, high=1, type='dtopo')
     mapper_2 = get_color_mapper(low=-5, high=5, type='topo')
-    mapper_3 = get_color_mapper(low=-1, high=1, type='dtopo')
+    mapper_3 = get_color_mapper(low=-5, high=5, type='topo')
 
     # plot raster
     p.image(
@@ -377,41 +377,41 @@ def plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, righ
     label_mae = Label(
         x=10, y=250, x_units="screen", y_units="screen",
         text=f"mae: {mae:.2f} m", text_color="white", text_font_size="14px",
-        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=True
     )
     p.add_layout(label_mae)
 
     label_rmse = Label(
         x=10, y=215, x_units="screen", y_units="screen",
         text=f"rmse: {rmse:.2f} m", text_color="white", text_font_size="14px",
-        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=True
     )
     p.add_layout(label_rmse)
 
     label_mean = Label(
         x=10, y=180, x_units="screen", y_units="screen",
         text=f"mean: {np.nanmean(d_topo):.2f} m", text_color="white", text_font_size="14px",
-        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=True
     )
     p.add_layout(label_mean)
 
     label_median = Label(
         x=10, y=145, x_units="screen", y_units="screen",
         text=f"median: {np.nanmedian(d_topo):.2f} m", text_color="white", text_font_size="14px",
-        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=False
+        background_fill_color="#185fa5", background_fill_alpha=0.75, border_line_color="white", padding=6, visible=True
     )
     p.add_layout(label_median)
 
     select = Select(
         title="Select raster",
-        value="Wavecams",
-        options=["Wavecams", "Groundtruth", "Difference"]
+        value="Difference",
+        options=["Difference", "Wavecams", "Groundtruth" ]
     )
 
     configs = {
-        "Wavecams": {"palette": mapper_1.palette, "low": mapper_1.low, "high": mapper_1.high},
-        "Groundtruth": {"palette": mapper_2.palette, "low": mapper_2.low, "high": mapper_2.high},
-        "Difference": {"palette": mapper_3.palette, "low": mapper_3.low, "high": mapper_3.high},
+        "Difference": {"palette": mapper_1.palette, "low": mapper_1.low, "high": mapper_1.high},
+        "Wavecams": {"palette": mapper_2.palette, "low": mapper_2.low, "high": mapper_2.high},
+        "Groundtruth": {"palette": mapper_3.palette, "low": mapper_3.low, "high": mapper_3.high},
     }
 
     # javascript callback
@@ -428,9 +428,10 @@ def plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, righ
         ),
         code="""
         const raster_map = {
-            'Wavecams': {data: all_data.data['r1'], ...configs['Wavecams']},
-            'Groundtruth': {data: all_data.data['r2'], ...configs['Groundtruth']},
-            'Difference': {data: all_data.data['r3'], ...configs['Difference']},
+            'Difference': {data: all_data.data['r1'], ...configs['Difference']},
+            'Wavecams': {data: all_data.data['r2'], ...configs['Wavecams']},
+            'Groundtruth': {data: all_data.data['r3'], ...configs['Groundtruth']},
+            
         };
         const chosen = raster_map[cb_obj.value];
 
@@ -455,7 +456,7 @@ def plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, righ
 
 def plot_validation(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top, i):
 
-    layout_validation_raster = plot_validation_raster(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top, i)
+    layout_validation_raster = plot_validation_raster(wc_topo, sp_topo, rmse, mae, left, bottom, right, top, i)
 
     mask = np.logical_or(np.isnan(wc_topo), np.isnan(sp_topo))
     wc_topo = np.ma.array(wc_topo, mask=mask).compressed().flatten()
