@@ -474,7 +474,7 @@ def plot_validation(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top,
 
     p1.scatter(
         x=sp_topo, y=wc_topo,
-        size=6, alpha=0.5,
+        size=3, alpha=0.5,
         color="#378ADD", line_color="white", line_width=0.5,
     )
     # 1:1 reference line
