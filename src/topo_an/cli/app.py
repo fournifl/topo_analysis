@@ -31,6 +31,7 @@ class FilePair(BaseModel):
 
 class Validation(BaseModel):
     pairs: list[FilePair]
+    roi_val: Path
     outdir: Path
 
 class AppConfig(BaseModel):

@@ -27,9 +27,10 @@ validation:
   pairs:
   - sporadic: '/home/florent/Projects/Etretat/drone_photog/2020_09_11/ROLNHDF_LAS-SOL_0498_6961_20200911-20200917_RGF93-L93_IGN69.tif'
     t_sporadic: '2020-09-11'
-    wavecams: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/t_window_182_tstep_90/ascii/topography_merged_20200918.asc'
+    wavecams: '/home/florent/Projects/Etretat/ALL_CAMS/topographies_validation/t_window_7_tstep_1/ascii/topography_merged_20200913.asc'
   - sporadic: '/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif'
     t_sporadic: '2025-04-28 05:22'
-    wavecams: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/t_window_182_tstep_90/ascii/topography_merged_20250525.asc'
+    wavecams: '/home/florent/Projects/Etretat/ALL_CAMS/topographies_validation/t_window_2_tstep_1/ascii/topography_merged_20250429.asc'
+  roi_val: '/home/florent/Projects/Etretat/Geodesie/validation/roi_validation.gpkg'
   outdir: '/home/florent/Projects/Etretat/validation/'
 
