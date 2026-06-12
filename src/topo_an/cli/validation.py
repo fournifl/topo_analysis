@@ -5,4 +5,4 @@ def main(conf):
                         conf.validation.outdir,
                         conf.wavecams_topos.epsg,
                         conf.sporadic_topos.epsg,
-                        conf.sporadic_topos.roi)
+                        conf.validation.roi_val)
