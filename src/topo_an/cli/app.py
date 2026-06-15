@@ -15,12 +15,15 @@ app = typer.Typer(no_args_is_help=True)
 class WcamsTopos(BaseModel):
     dir: Path
     epsg: int
+    ref: Path
 
 
 class SporadicTopos(BaseModel):
     date: list[str]
     name: list[str]
     files: list[Path]
+    ref: Path
+    t_ref: str
     epsg: int
     roi: Path
 

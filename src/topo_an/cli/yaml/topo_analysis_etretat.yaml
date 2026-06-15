@@ -1,5 +1,7 @@
 wavecams_topos:
   dir: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/t_window_182_tstep_90/ascii/'
+#  dir: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/monthly/ascii/'
+  ref: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/t_window_182_tstep_90/ascii/topography_merged_20180929.asc'
   epsg: '32631'
 sporadic_topos:
   date: [
@@ -20,9 +22,12 @@ sporadic_topos:
            '/home/florent/Projects/Etretat/drone_photog/2023_09_05/0497_0498_6960_6961-LAS-SOL-COLOR.tif',
            '/home/florent/Projects/Etretat/lidarhd/LHD_FXX_0497_0498_6960_6961_LAMB93_IGN69.tif'
   ]
+  ref: '/home/florent/Projects/Etretat/litto3d/NHDF_MAR_FRA_0497_0498_6960_6961_MNT_2016-2018_L93_RGF93_IGN69.tif'
+  t_ref: '2017-08-21 17:10'
   epsg: '2154'
   roi: '/home/florent/Projects/Etretat/lidarhd/roi_lidar.gpkg'
 outdir: '/home/florent/Projects/Etretat/ALL_CAMS/topo_analysis_t_window_182_tstep_90/'
+#outdir: '/home/florent/Projects/Etretat/ALL_CAMS/topo_analysis_monthly/'
 validation:
   pairs:
   - sporadic: '/home/florent/Projects/Etretat/drone_photog/2020_09_11/ROLNHDF_LAS-SOL_0498_6961_20200911-20200917_RGF93-L93_IGN69.tif'

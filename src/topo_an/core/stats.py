@@ -6,7 +6,7 @@ from topo_an.core.topo import get_pixel_surface
 from topo_an.core.plot import plot_topos, plot_dv, plot_common_mask
 
 
-def d_volume(rio_topos, dates, names, rio_topo_ref):
+def d_volume(rio_topos, dates, names, rio_topo_ref, t_ref):
 
     # initialize variables
     mean_h = []
@@ -40,8 +40,6 @@ def d_volume(rio_topos, dates, names, rio_topo_ref):
         topo.mask = mask
         mean_h.append(round(np.mean(topo), 2))
         t.append(dates[i])
-        if rio_topo == rio_topo_ref:
-            t_ref = dates[i]
 
         # mean volume follow up
         dh_2d = topo - topo_ref
