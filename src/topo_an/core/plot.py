@@ -580,9 +580,6 @@ def gather_validation_layouts(layouts_val, outdir):
 
     layout = column(radio, *layouts_val)
 
-    outdir = outdir.joinpath('validation')
-    outdir.mkdir(parents=True, exist_ok=True)
-
     output_file(outdir.joinpath('validation.html'))
     print('\n --> %s \n' % (outdir.joinpath('validation.html')))
     save(layout)
