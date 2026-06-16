@@ -2,6 +2,7 @@ wavecams_topos:
   dir: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/t_window_182_tstep_90/ascii/'
 #  dir: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/monthly/ascii/'
   ref: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/t_window_182_tstep_90/ascii/topography_merged_20180929.asc'
+#  ref: '/home/florent/Projects/Etretat/ALL_CAMS/topographies/monthly/ascii/topography_merged_20181016.asc'
   epsg: '32631'
 sporadic_topos:
   date: [
