@@ -13,8 +13,9 @@ def open_wcams_topo(f_wcams_topo, epsg):
     # set crs
     src.crs = CRS.from_epsg(epsg)
 
-    # append date to dates
+    # date
     date = f_wcams_topo.stem.split('_')[-1]
+    date = f'{date[0:4]}-{date[4:6]}-{date[6:8]}'
 
     return src, date
 

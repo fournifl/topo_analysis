@@ -41,7 +41,7 @@ def parse_date(date_string):
 
 def get_color_mapper(low=-5, high=5, type='topo'):
 
-    if type == 'topo':
+    if type == 'topo' or type =='topo_ref':
         # https://eltos.github.io/gradient/#0C0A69-2A5FD9-00E55A-FBFF03-F2B513-8B6316-371B00
         cmap = LinearSegmentedColormap.from_list('my gradient', (
             (0.000, (0.047, 0.039, 0.412)),
@@ -79,6 +79,9 @@ def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, ty
     if type =='topo':
         title = 'BEACH HEIGHT'
         title_cbar = "Elevation (mIGN69)"
+    elif type == 'topo_ref':
+        title = 'REFERENCE BEACH HEIGHT'
+        title_cbar = "Elevation (mIGN69)"
     elif type =='dtopo':
         title = 'BEACH HEIGHT DIFFERENCE'
         title_cbar = "Difference (m)"
@@ -107,9 +110,10 @@ def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, ty
     # plot topo
     img = p.image(image=[z[0]], x=left, y=bottom, dw=(right - left), dh=(top - bottom), color_mapper=color_mapper)
 
-    # Create slider with CustomJS callback
-    slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=title, format=" ", width=int(0.8 * width),
-                    show_value=False)
+    # Colour bar
+    color_bar = ColorBar(color_mapper=color_mapper, width=16, location=(0, 0), title=title_cbar,
+                         title_text_font_size="12pt", title_text_font_style="bold")
+    p.add_layout(color_bar, "right")
 
     # stat label
     if label:
@@ -133,32 +137,33 @@ def plot_topos(z, left, bottom, right, top, dates, low=-5, high=5, name=None, ty
         dh = None
         dv = None
 
-    code_js = """
-            const idx = slider.value;
-            img.data_source.data['image'][0] = arrays[idx];
-            // Update the fixed Label text
-            // label.text = "Mean height diff: " + dh[idx].toFixed(2) + " m";
-            %s
-            img.data_source.change.emit();
-            p.title.text = `${titles[idx]}`;
-        """%(label_js)
-    callback = CustomJS(args=dict(img=img,
-                                  arrays=z,
-                                  slider=slider,
-                                  label=stat_label,
-                                  p=p,
-                                  dh=dh,
-                                  dv=dv,
-                                  titles=subtitles), code=code_js)
+    if len(z) > 1:
+        # Create slider with CustomJS callback
+        slider = Slider(start=0, end=len(z) - 1, step=1, value=0, title=title, format=" ", width=int(0.8 * width),
+                        show_value=False)
+        code_js = """
+                const idx = slider.value;
+                img.data_source.data['image'][0] = arrays[idx];
+                // Update the fixed Label text
+                // label.text = "Mean height diff: " + dh[idx].toFixed(2) + " m";
+                %s
+                img.data_source.change.emit();
+                p.title.text = `${titles[idx]}`;
+            """%(label_js)
+        callback = CustomJS(args=dict(img=img,
+                                      arrays=z,
+                                      slider=slider,
+                                      label=stat_label,
+                                      p=p,
+                                      dh=dh,
+                                      dv=dv,
+                                      titles=subtitles), code=code_js)
 
-    slider.js_on_change('value', callback)
+        slider.js_on_change('value', callback)
+        layout = column(slider, p)
 
-    # Colour bar
-    color_bar = ColorBar(color_mapper=color_mapper, width=16, location=(0, 0), title=title_cbar,
-    title_text_font_size="12pt", title_text_font_style="bold")
-    p.add_layout(color_bar, "right")
-
-    layout = column(slider, p)
+    else:
+        layout = p
 
     return layout
 
@@ -191,7 +196,7 @@ def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, layout_dh):
     p3.add_layout(ref_line)
 
     # Add ref_line to legend using dummy invisible lines
-    p1.line([t_ref, t_ref], [mean_h.min(), mean_h.max()], color='aqua', line_width=3.5, legend_label='ref', alpha=1)
+    p1.line([t_ref, t_ref], [mean_h.min(), mean_h.max()], color='aqua', line_width=3.5, legend_label='t ref', alpha=0.7)
 
     # Wavecams data
     if len(inds_wcams) > 0:
@@ -301,7 +306,7 @@ def plot_common_mask(mask, topo_ex, tile_choice = 'Esri'):
     mask[mask==255] = 0
     return p, np.flipud(mask.astype(int))
 
-def gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, subdir, name_out):
+def gather_analysis_layouts(layout_h, layout_h_ref, layout_dh, layout_dv, outdir, subdir, name_out):
 
 
     # output directory
@@ -309,23 +314,24 @@ def gather_analysis_layouts(layout_h, layout_dh, layout_dv, outdir, subdir, name
     outdir.mkdir(parents=True, exist_ok=True)
 
     radio = RadioButtonGroup(
-        labels=["Beach Height", "Beach Height difference with ref", "Beach Volume difference with ref"],
+        labels=["Beach Height", "Beach Height ref","Beach Height difference with ref", "Beach Volume difference with ref"],
         active=0,
         button_type="success"
     )
     layout_h.visible = True
+    layout_h_ref.visible = False
     layout_dh.visible = False
     layout_dv.visible = False
 
     # Simple loop: show only the plot matching the active index
-    callback = CustomJS(args=dict(plots=[layout_h, layout_dh, layout_dv]), code="""
+    callback = CustomJS(args=dict(plots=[layout_h, layout_h_ref, layout_dh, layout_dv]), code="""
             for (let i = 0; i < plots.length; i++) {
                 plots[i].visible = (i === cb_obj.active);
             }
         """)
     radio.js_on_change("active", callback)
 
-    layout = column(radio, layout_h, layout_dh, layout_dv, sizing_mode="stretch_both")
+    layout = column(radio, layout_h, layout_h_ref, layout_dh, layout_dv, sizing_mode="stretch_both")
     output_file(outdir.joinpath(f'{name_out}.html'))
     print('\n --> %s \n' %(outdir.joinpath(f'{name_out}.html')))
     save(layout)
