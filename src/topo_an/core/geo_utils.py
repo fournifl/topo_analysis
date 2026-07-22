@@ -76,6 +76,8 @@ def reproject_rasters(src_topos, crs=3857, flipud_bokeh=True):
         # Flip: rasterio stores top→bottom, Bokeh needs bottom→top
         if flipud_bokeh:
             img = np.flipud(dst_data)
+        else:
+            img = dst_data
         z.append(img)
 
     return z, left, bottom, right, top
