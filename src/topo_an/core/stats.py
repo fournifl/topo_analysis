@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from topo_an.core.geo_utils import get_common_mask, same_grid, align_rasters, reproject_rasters_to_web_mercator
+from topo_an.core.geo_utils import get_common_mask, same_grid, align_rasters, reproject_rasters
 from topo_an.core.topo import get_pixel_surface
 from topo_an.core.plot import plot_topos, plot_dv, plot_common_mask
 
@@ -48,8 +48,8 @@ def d_volume(rio_topos, dates, names, rio_topo_ref, t_ref):
         dv_with_ref.append(mean_d * s)
 
     # plot dh
-    z, left, bottom, right, top = reproject_rasters_to_web_mercator(rio_topos)
-    z_ref, _, _, _, _ = reproject_rasters_to_web_mercator([rio_topo_ref])
+    z, left, bottom, right, top = reproject_rasters(rio_topos)
+    z_ref, _, _, _, _ = reproject_rasters([rio_topo_ref])
     dz = [z[i] - z_ref[0] for i in range(len(z))]
     layout_dh = plot_topos(dz, left, bottom, right, top, dates, low=-1.5, high=1.5, name='', type='dtopo')
 

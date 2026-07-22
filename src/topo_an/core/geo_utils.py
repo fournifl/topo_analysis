@@ -4,9 +4,9 @@ from rasterio.crs import CRS
 from rasterio.transform import array_bounds
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
-def calculate_tform_to_webmctor_and_reproj_extent(src):
-    # calculate transform to web mercator (EPSG:3857) and reprojected extent
-    dst_crs = CRS.from_epsg(3857)
+def calculate_tform_and_reproj_extent(src, crs=3857):
+    # calculate transform to web mercator by default (EPSG:3857) and reprojected extent
+    dst_crs = CRS.from_epsg(crs)
     transform, width, height = calculate_default_transform(
         src.crs, dst_crs,
         src.width, src.height,
@@ -40,13 +40,13 @@ def get_common_mask(rio_topos):
             mask += mask_i
     return mask
 
-def reproject_rasters_to_web_mercator(src_topos):
+def reproject_rasters(src_topos):
 
     # initialize reprojected variables
     z = []
 
     # calculate transform to web mercator (EPSG:3857) and reprojected extent
-    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(
+    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_and_reproj_extent(
         src_topos[0])
 
     for i, src in enumerate(src_topos):

@@ -1,7 +1,7 @@
 import numpy as np
 import shutil
 from topo_an.core.topo import open_wcams_topo, open_sporadic_topos, apply_roi_mask_to_sporadic_topos
-from topo_an.core.geo_utils import same_grid, align_rasters, reproject_rasters_to_web_mercator
+from topo_an.core.geo_utils import same_grid, align_rasters, reproject_rasters
 from topo_an.core.stats import validation_metrics
 from topo_an.core.plot import plot_validation, gather_validation_layouts
 
@@ -38,7 +38,7 @@ def run(pairs, outdir, epsg_wcams, epsg_spor, roi_spor):
         rmse, mae, corr = validation_metrics(wc_topo, sp_topo)
 
         # reproject topos to web mercator (before bokeh plot)
-        [wc_topo, sp_topo], left, bottom, right, top = reproject_rasters_to_web_mercator([wc_rio_topo, sp_rio_topo])
+        [wc_topo, sp_topo], left, bottom, right, top = reproject_rasters([wc_rio_topo, sp_rio_topo])
 
         layout_val = plot_validation(wc_topo, sp_topo, rmse, mae, corr, left, bottom, right, top, i)
         layouts_val.append(layout_val)

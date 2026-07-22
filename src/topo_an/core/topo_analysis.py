@@ -4,7 +4,7 @@ import shutil
 from topo_an.core.topo import open_wcams_topos, open_wcams_topo, open_sporadic_topos, apply_roi_mask_to_sporadic_topos
 from topo_an.core.plot import plot_topos, gather_analysis_layouts
 from topo_an.core import stats
-from topo_an.core.geo_utils import reproject_rasters_to_web_mercator
+from topo_an.core.geo_utils import reproject_rasters
 
 def run_wcams(wavecams_topos, outdir):
     '''
@@ -18,8 +18,8 @@ def run_wcams(wavecams_topos, outdir):
     wc_rio_topo_ref, t_ref = open_wcams_topo(wavecams_topos.ref, wavecams_topos.epsg)
 
     # reproject topos to web mercator (before bokeh plot)
-    z, left, bottom, right, top = reproject_rasters_to_web_mercator(wc_rio_topos)
-    z_ref, left_r, bottom_r, right_r, top_r = reproject_rasters_to_web_mercator([wc_rio_topo_ref])
+    z, left, bottom, right, top = reproject_rasters(wc_rio_topos)
+    z_ref, left_r, bottom_r, right_r, top_r = reproject_rasters([wc_rio_topo_ref])
 
     # plot wavecams topographies
     layout_h = plot_topos(z, left, bottom, right, top, wc_dates, low=-3, high=4, name='WAVECAMS')
@@ -56,8 +56,8 @@ def run_spor(sporadic_topos, outdir):
     sp_rio_topo_ref = apply_roi_mask_to_sporadic_topos(sp_rio_topo_ref, sporadic_topos.roi, outdir_masked)[0]
 
     # reproject topos to web mercator (before bokeh plot)
-    z, left, bottom, right, top = reproject_rasters_to_web_mercator(sp_rio_topos)
-    z_ref, left_r, bottom_r, right_r, top_r = reproject_rasters_to_web_mercator([sp_rio_topo_ref])
+    z, left, bottom, right, top = reproject_rasters(sp_rio_topos)
+    z_ref, left_r, bottom_r, right_r, top_r = reproject_rasters([sp_rio_topo_ref])
 
     # plot sporadic topographies
     layout_h = plot_topos(z, left, bottom, right, top, sporadic_topos.date, low=-4, high=12, name=sporadic_topos.name)
@@ -112,8 +112,8 @@ def run_all(wavecams_topos, sporadic_topos, outdir):
     name = [name_[i] for i in inds_t]
 
     # reproject topos to web mercator (before bokeh plot)
-    z, left, bottom, right, top = reproject_rasters_to_web_mercator(rio_topos)
-    z_ref, left_r, bottom_r, right_r, top_r = reproject_rasters_to_web_mercator([wc_rio_topo_ref])
+    z, left, bottom, right, top = reproject_rasters(rio_topos)
+    z_ref, left_r, bottom_r, right_r, top_r = reproject_rasters([wc_rio_topo_ref])
 
     # plot wavecams and sporadic topographies
     layout_h = plot_topos(z, left, bottom, right, top, dates, low=-4, high=12, name=name)

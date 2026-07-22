@@ -7,7 +7,7 @@ from bokeh.layouts import column, row, gridplot
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.colors import to_hex
 from rasterio.warp import reproject, Resampling
-from topo_an.core.geo_utils import calculate_tform_to_webmctor_and_reproj_extent, get_common_mask
+from topo_an.core.geo_utils import calculate_tform_and_reproj_extent, get_common_mask
 
 
 def osm_tile(tile_choice):
@@ -254,7 +254,7 @@ def plot_dv(names, mean_h, t, t_ref, dh_with_ref, dv_with_ref, layout_dh):
 def plot_common_mask(mask, topo_ex, tile_choice = 'Esri'):
 
     # calculate transform to web mercator (EPSG:3857) and reprojected extent
-    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_to_webmctor_and_reproj_extent(topo_ex)
+    dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_and_reproj_extent(topo_ex)
 
     nodata = 1
 
