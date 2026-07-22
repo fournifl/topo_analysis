@@ -40,7 +40,7 @@ def get_common_mask(rio_topos):
             mask += mask_i
     return mask
 
-def reproject_rasters(src_topos, crs=3857):
+def reproject_rasters(src_topos, crs=3857, flipud_bokeh=True):
 
     # initialize reprojected variables
     z = []
@@ -74,7 +74,8 @@ def reproject_rasters(src_topos, crs=3857):
             dst_data[dst_data == nodata] = np.nan
 
         # Flip: rasterio stores top→bottom, Bokeh needs bottom→top
-        img = np.flipud(dst_data)
+        if flipud_bokeh:
+            img = np.flipud(dst_data)
         z.append(img)
 
     return z, left, bottom, right, top
@@ -124,4 +125,17 @@ def align_rasters(raster_list, rio_ref):
 
     return rio_aligned
 
+def raster_grid(f_raster):
 
+    with rasterio.open(f_raster) as src:
+        height, width = src.shape
+        rows, cols = np.arange(height), np.arange(width)
+
+        # Vectorized approach using the affine transform directly
+        transform = src.transform
+        cols_grid, rows_grid = np.meshgrid(cols, rows)
+        xs, ys = transform * (cols_grid + 0.5, rows_grid + 0.5)
+
+        import matplotlib.pyplot as plt
+
+    return
