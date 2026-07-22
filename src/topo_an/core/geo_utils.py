@@ -40,14 +40,14 @@ def get_common_mask(rio_topos):
             mask += mask_i
     return mask
 
-def reproject_rasters(src_topos):
+def reproject_rasters(src_topos, crs=3857):
 
     # initialize reprojected variables
     z = []
 
     # calculate transform to web mercator (EPSG:3857) and reprojected extent
     dst_crs, tform, width, height, left, bottom, right, top = calculate_tform_and_reproj_extent(
-        src_topos[0])
+        src_topos[0], crs=crs)
 
     for i, src in enumerate(src_topos):
 
