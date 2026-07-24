@@ -4,6 +4,30 @@ from rasterio.crs import CRS
 from rasterio.transform import array_bounds
 from rasterio.warp import calculate_default_transform, reproject, Resampling
 
+
+def raster_grid(src, to_crs):
+    '''
+    get src raster grid points, in other other crs in case of to_crs is different to src.crs
+    :param src:
+    :param to_crs:
+    :return:
+    '''
+
+    if src.crs != CRS.from_epsg(to_crs):
+        dst, tform, width, height, _, _, _, _ = calculate_tform_and_reproj_extent(src, crs=to_crs)
+    else:
+        width = src.width
+        height = src.height
+        tform = src.transform
+
+    cols, rows = np.meshgrid(np.arange(width), np.arange(height))
+    xs, ys = rasterio.transform.xy(tform, rows, cols)
+    XS = xs.reshape(src.shape)
+    YS = ys.reshape(src.shape)
+
+    return XS, YS
+
+
 def calculate_tform_and_reproj_extent(src, crs=3857):
     # calculate transform to web mercator by default (EPSG:3857) and reprojected extent
     dst_crs = CRS.from_epsg(crs)
@@ -55,7 +79,7 @@ def reproject_rasters(src_topos, crs=3857, flipud_bokeh=True):
         src_data = src.read(1).astype(float)  # band 1
         nodata = src.nodata
 
-        # Reproject topo to Web Mercator
+        # Reproject topo
         dst_data = np.empty((height, width), dtype=np.float32)
         reproject(
             source=src_data,
@@ -126,18 +150,3 @@ def align_rasters(raster_list, rio_ref):
             rio_aligned.append(src_aligned)
 
     return rio_aligned
-
-def raster_grid(f_raster):
-
-    with rasterio.open(f_raster) as src:
-        height, width = src.shape
-        rows, cols = np.arange(height), np.arange(width)
-
-        # Vectorized approach using the affine transform directly
-        transform = src.transform
-        cols_grid, rows_grid = np.meshgrid(cols, rows)
-        xs, ys = transform * (cols_grid + 0.5, rows_grid + 0.5)
-
-        import matplotlib.pyplot as plt
-
-    return
